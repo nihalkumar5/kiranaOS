@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
         stock: { lte: 5 },
       },
       include: { category: true },
-      take: 20,
     });
 
     return NextResponse.json({ success: true, data: lowStock });
