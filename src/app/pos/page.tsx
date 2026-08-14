@@ -814,13 +814,13 @@ export default function PosPage() {
             {!searchQuery && !isBillMode && (
               <div className="mb-8">
                 {/* Blinkit-style Hero Banner */}
-                <div className="relative w-full h-[260px] mb-8 rounded-[24px] overflow-hidden shadow-sm border border-gray-100">
+                <div className="relative w-full h-[200px] sm:h-[260px] mb-8 rounded-[24px] overflow-hidden shadow-sm border border-gray-100">
                   <img src="/g1.jpg" alt="Promo Banner" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 flex flex-col justify-center px-12 md:px-16 w-full md:w-2/3">
-                    <h2 className="text-[42px] font-black text-white leading-tight mb-3 drop-shadow-md tracking-tight">Stock up on daily essentials</h2>
-                    <p className="text-white text-xl font-medium mb-8 drop-shadow-sm leading-snug">Get farm-fresh goodness & a range of exotic fruits, vegetables, eggs & more</p>
+                  <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-12 md:px-16 w-full md:w-2/3">
+                    <h2 className="text-3xl sm:text-[42px] font-black text-white leading-tight mb-2 sm:mb-3 drop-shadow-md tracking-tight">Stock up on daily essentials</h2>
+                    <p className="text-white text-sm sm:text-xl font-medium mb-5 sm:mb-8 drop-shadow-sm leading-snug">Get farm-fresh goodness & a range of exotic fruits, vegetables, eggs & more</p>
                     <div>
-                       <button className="bg-white text-green-700 px-6 py-2.5 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm text-sm">Shop Now</button>
+                       <button className="bg-white text-green-700 px-5 sm:px-6 py-2 sm:py-2.5 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm text-xs sm:text-sm">Shop Now</button>
                     </div>
                   </div>
                 </div>
