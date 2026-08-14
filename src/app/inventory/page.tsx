@@ -454,9 +454,9 @@ export default function InventoryPage() {
                         // Map standard fields, handle different column names from "Export Items.xlsx"
                         const mapped = json.map(row => ({
                           name: row['Item name*'] || row['Item Name'] || row.name || row.Name || '',
-                          price: parseFloat(row['Sales Price*'] || row['Selling Price'] || row.price || row.Price || 0),
-                          stock: parseFloat(row['Opening Quantity'] || row.stock || row.Stock || 0),
-                          barcode: row['Item Code'] || row.barcode || row.Barcode || '',
+                          price: parseFloat(row['Sale price'] || row['Sales Price*'] || row['Selling Price'] || row.price || row.Price || 0),
+                          stock: parseFloat(row['Current stock quantity'] || row['Opening Quantity'] || row.stock || row.Stock || 0),
+                          barcode: row['Item code'] || row['Item Code'] || row.barcode || row.Barcode || '',
                         })).filter(item => item.name);
 
                         const res = await api.post('/products/import', { products: mapped });
