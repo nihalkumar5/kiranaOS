@@ -376,7 +376,9 @@ export default function PosPage() {
       }
     });
     enableBillMode();
-    searchInputRef.current?.focus();
+    if (window.innerWidth >= 768) {
+      searchInputRef.current?.focus();
+    }
   };
 
   const updateQuantity = (key: string, qty: number) => {
@@ -388,7 +390,9 @@ export default function PosPage() {
       ...prev,
       [key]: { ...prev[key], quantity: qty },
     }));
-    searchInputRef.current?.focus();
+    if (window.innerWidth >= 768) {
+      searchInputRef.current?.focus();
+    }
   };
 
   const removeCartItem = (key: string) => {
@@ -397,7 +401,9 @@ export default function PosPage() {
       delete copy[key];
       return copy;
     });
-    searchInputRef.current?.focus();
+    if (window.innerWidth >= 768) {
+      searchInputRef.current?.focus();
+    }
   };
 
   const clearCart = () => {
@@ -733,8 +739,16 @@ export default function PosPage() {
                 setIsBillMode(false);
               }
             }}
+            onClick={() => {
+              if (window.innerWidth < 768 && isBillMode) {
+                setIsBillMode(false);
+              }
+            }}
             onChange={(e) => {
               setSearchQuery(e.target.value);
+              if (window.innerWidth < 768 && isBillMode) {
+                setIsBillMode(false);
+              }
             }}
             onKeyDown={async (e) => {
               const currentValue = e.currentTarget.value;
