@@ -204,18 +204,15 @@ export default function DashboardPage() {
       <Sidebar />
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-0">
 
         {/* Top Bar */}
-        <div style={{
-          background: '#fff', borderBottom: '1px solid #e5e7eb',
-          padding: '24px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+        <div className="bg-white border-b border-gray-200 p-4 md:p-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p style={{ fontSize: 13, color: '#666', fontWeight: 500, margin: 0 }}>Welcome back 👋</p>
-            <h1 style={{ fontSize: 24, fontWeight: 900, color: '#111827', margin: 0, lineHeight: 1.2 }}>{store?.name || 'Dashboard'}</h1>
+            <p className="text-[13px] text-gray-600 font-medium m-0">Welcome back 👋</p>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 m-0 leading-tight">{store?.name || 'Dashboard'}</h1>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
               onClick={() => router.push('/pos')}
               style={{
@@ -242,7 +239,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Content Area */}
-        <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="p-4 md:p-6 lg:px-8 flex flex-col gap-6">
 
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
@@ -251,7 +248,7 @@ export default function DashboardPage() {
           ) : stats ? (
             <>
               {/* Stat Cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                 {statCards.map((card, i) => (
                   <div key={i} style={{
                     background: '#fff', padding: '24px',
@@ -278,12 +275,10 @@ export default function DashboardPage() {
               </div>
 
               {/* Charts Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+              <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
 
                 {/* Category Sales */}
-                <div style={{
-                  background: '#fff', padding: 24, border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                }}>
+                <div className="flex-1 lg:w-2/3 bg-white p-5 md:p-6 border border-slate-200 rounded-2xl shadow-sm">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <TrendingUp className="w-4 h-4" style={{ color: '#111827' }} />
@@ -322,9 +317,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Best Sellers */}
-                <div style={{
-                  background: '#fff', padding: 24, border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                }}>
+                <div className="w-full lg:w-1/3 bg-white p-5 md:p-6 border border-slate-200 rounded-2xl shadow-sm">
                   <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <ShoppingBag className="w-4 h-4" style={{ color: '#111827' }} />
                     Top Sellers
@@ -361,12 +354,10 @@ export default function DashboardPage() {
               </div>
 
               {/* Bottom Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+              <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
 
                 {/* Low Stock Alerts */}
-                <div style={{
-                  background: '#fff', padding: 24, border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                }}>
+                <div className="flex-1 lg:w-2/3 bg-white p-5 md:p-6 border border-slate-200 rounded-2xl shadow-sm">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <AlertTriangle className="w-4 h-4" style={{ color: '#111827' }} />
@@ -383,7 +374,7 @@ export default function DashboardPage() {
                     </button>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {stats.lowStock.items.length === 0 ? (
                       <div style={{ gridColumn: '1/-1', padding: '20px 0', textAlign: 'center', color: '#10b981', fontSize: 13, fontWeight: 600 }}>
                         ✨ All stock levels are healthy!
@@ -406,10 +397,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* QR Code */}
-                <div style={{
-                  background: '#111827', padding: 24, color: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-                }}>
+                <div className="w-full lg:w-1/3 bg-gray-900 p-5 md:p-6 text-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center gap-4">
                   <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <QrCode className="w-4 h-4" /> Online Store QR
                   </h3>
