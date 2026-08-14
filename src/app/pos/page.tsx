@@ -181,7 +181,7 @@ export default function PosPage() {
   // Persistent focus on barcode input
   useEffect(() => {
     const focusTimer = setTimeout(() => {
-      searchInputRef.current?.focus();
+      if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
     }, 100);
     return () => clearTimeout(focusTimer);
   }, []);
@@ -227,7 +227,7 @@ export default function PosPage() {
       !target.closest('button') &&
       !target.closest('.modal-content')
     ) {
-      searchInputRef.current?.focus();
+      if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
     }
   };
 
@@ -242,7 +242,7 @@ export default function PosPage() {
       if (e.key === 'Escape') {
         e.preventDefault();
         setSearchQuery('');
-        searchInputRef.current?.focus();
+        if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
         showToast('Input refocused', 'success');
       } else if (e.key === 'F8') {
         e.preventDefault();
@@ -323,7 +323,7 @@ export default function PosPage() {
     if (!cleanBarcode) return;
 
     setSearchQuery(''); 
-    searchInputRef.current?.focus();
+    if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
 
     try {
       const response = await api.get(`/products/barcode/${cleanBarcode}`);
@@ -376,9 +376,7 @@ export default function PosPage() {
       }
     });
     enableBillMode();
-    if (window.innerWidth >= 768) {
-      searchInputRef.current?.focus();
-    }
+    if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
   };
 
   const updateQuantity = (key: string, qty: number) => {
@@ -390,9 +388,7 @@ export default function PosPage() {
       ...prev,
       [key]: { ...prev[key], quantity: qty },
     }));
-    if (window.innerWidth >= 768) {
-      searchInputRef.current?.focus();
-    }
+    if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
   };
 
   const removeCartItem = (key: string) => {
@@ -401,9 +397,7 @@ export default function PosPage() {
       delete copy[key];
       return copy;
     });
-    if (window.innerWidth >= 768) {
-      searchInputRef.current?.focus();
-    }
+    if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
   };
 
   const clearCart = () => {
@@ -413,7 +407,7 @@ export default function PosPage() {
     setCustomerMobile('');
     setCustomerName('');
     setIsNewCustomer(false);
-    searchInputRef.current?.focus();
+    if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
   };
 
   const handleCustomerMobileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -449,7 +443,7 @@ export default function PosPage() {
       setCustomer(res.data.data);
       setIsNewCustomer(false);
       showToast('Customer registered successfully', 'success');
-      searchInputRef.current?.focus();
+      if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
     } catch (err: any) {
       showToast(err.response?.data?.message || 'Failed to create customer', 'error');
     }
@@ -730,7 +724,6 @@ export default function PosPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full blur opacity-0 group-focus-within:opacity-10 transition duration-500"></div>
           <Search className="w-5 h-5 text-zinc-400 absolute left-4 md:left-5 top-[11px] md:top-[15px] z-10" />
           <input
-            autoFocus
             ref={searchInputRef}
             type="text"
             value={searchQuery}
@@ -1264,7 +1257,7 @@ export default function PosPage() {
               <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5 text-[#059669]" /> Store Orders
               </h3>
-              <button onClick={() => { setShowOnlineDrawer(false); searchInputRef.current?.focus(); }} className="p-1.5 hover:bg-gray-100 text-gray-500 rounded-lg font-bold">
+              <button onClick={() => { setShowOnlineDrawer(false); if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); } }} className="p-1.5 hover:bg-gray-100 text-gray-500 rounded-lg font-bold">
                 Close
               </button>
             </div>
@@ -1403,7 +1396,7 @@ export default function PosPage() {
                 <Share2 className="w-4 h-4" /> {whatsappSent ? 'Sent!' : 'WhatsApp'}
               </button>
             </div>
-            <button onClick={() => { setShowReceipt(false); searchInputRef.current?.focus(); }} className="w-full bg-[#059669] text-white font-bold py-4 rounded-xl text-sm mt-2">
+            <button onClick={() => { setShowReceipt(false); if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); } }} className="w-full bg-[#059669] text-white font-bold py-4 rounded-xl text-sm mt-2">
               Next Sale
             </button>
           </div>
@@ -1595,7 +1588,7 @@ export default function PosPage() {
       {showQuickAddModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 no-print">
           <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-sm m-4 flex flex-col p-6 relative">
-            <button onClick={() => { setShowQuickAddModal(false); searchInputRef.current?.focus(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 transition-colors">
+            <button onClick={() => { setShowQuickAddModal(false); if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); } }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 transition-colors">
               <X className="w-5 h-5" />
             </button>
             
