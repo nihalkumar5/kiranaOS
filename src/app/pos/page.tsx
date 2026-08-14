@@ -896,36 +896,6 @@ export default function PosPage() {
               </div>
             )}
 
-            {!searchQuery && (
-              <div className="mb-12">
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-6 flex items-center gap-2">
-                  <ShoppingBag className="w-6 h-6 text-[#059669]" />
-                  Shop by Category
-                </h2>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-4 gap-y-6 md:gap-x-6 md:gap-y-8">
-                  {[
-                    {name: 'Paan Corner', img: 'https://images.unsplash.com/photo-1599305090598-fe179d501227?w=200&h=200&fit=crop'},
-                    {name: 'Dairy, Bread & Eggs', img: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&h=200&fit=crop'},
-                    {name: 'Fruits & Vegetables', img: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&h=200&fit=crop'},
-                    {name: 'Cold Drinks & Juices', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&h=200&fit=crop'},
-                    {name: 'Snacks & Munchies', img: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=200&h=200&fit=crop'},
-                    {name: 'Breakfast & Instant', img: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=200&h=200&fit=crop'},
-                    {name: 'Sweet Tooth', img: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=200&h=200&fit=crop'},
-                    {name: 'Bakery & Biscuits', img: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&h=200&fit=crop'},
-                    {name: 'Personal Care', img: 'https://images.unsplash.com/photo-1629198688000-71f23e745b6e?w=200&h=200&fit=crop'},
-                    {name: 'Home Care', img: 'https://images.unsplash.com/photo-1584820927498-cafe2c11818e?w=200&h=200&fit=crop'},
-                  ].map((cat, i) => (
-                    <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.95 }} key={i} className="flex flex-col items-center gap-3 cursor-pointer group">
-                      <div className="w-[88px] h-[88px] mx-auto bg-[#f4f6f9] rounded-[20px] overflow-hidden flex items-center justify-center shadow-sm border border-gray-100 group-hover:shadow-md group-hover:border-[#059669]/40 transition-all">
-                        <img src={cat.img} alt={cat.name} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
-                      </div>
-                      <span className="font-bold text-[13px] text-zinc-700 text-center leading-tight tracking-tight px-1 group-hover:text-[#059669] transition-colors">{cat.name}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {filteredProducts.length === 0 ? (
                <div className="py-20 flex flex-col items-center">
                  <div className="bg-gray-50 p-4 rounded-full mb-3 border border-gray-100">
@@ -1021,6 +991,38 @@ export default function PosPage() {
                 ))}
               </div>
             )}
+
+
+            {!searchQuery && (
+              <div className="mb-12">
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-6 flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-[#059669]" />
+                  Shop by Category
+                </h2>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-4 gap-y-6 md:gap-x-6 md:gap-y-8">
+                  {[
+                    {name: 'Paan Corner', img: 'https://images.unsplash.com/photo-1599305090598-fe179d501227?w=200&h=200&fit=crop'},
+                    {name: 'Dairy, Bread & Eggs', img: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&h=200&fit=crop'},
+                    {name: 'Fruits & Vegetables', img: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&h=200&fit=crop'},
+                    {name: 'Cold Drinks & Juices', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&h=200&fit=crop'},
+                    {name: 'Snacks & Munchies', img: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=200&h=200&fit=crop'},
+                    {name: 'Breakfast & Instant', img: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=200&h=200&fit=crop'},
+                    {name: 'Sweet Tooth', img: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=200&h=200&fit=crop'},
+                    {name: 'Bakery & Biscuits', img: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&h=200&fit=crop'},
+                    {name: 'Personal Care', img: 'https://images.unsplash.com/photo-1629198688000-71f23e745b6e?w=200&h=200&fit=crop'},
+                    {name: 'Home Care', img: 'https://images.unsplash.com/photo-1584820927498-cafe2c11818e?w=200&h=200&fit=crop'},
+                  ].map((cat, i) => (
+                    <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.95 }} key={i} className="flex flex-col items-center gap-3 cursor-pointer group">
+                      <div className="w-[88px] h-[88px] mx-auto bg-[#f4f6f9] rounded-[20px] overflow-hidden flex items-center justify-center shadow-sm border border-gray-100 group-hover:shadow-md group-hover:border-[#059669]/40 transition-all">
+                        <img src={cat.img} alt={cat.name} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
+                      </div>
+                      <span className="font-bold text-[13px] text-zinc-700 text-center leading-tight tracking-tight px-1 group-hover:text-[#059669] transition-colors">{cat.name}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </section>
 
