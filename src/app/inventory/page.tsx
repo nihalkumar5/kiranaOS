@@ -394,7 +394,7 @@ export default function InventoryPage() {
       <Sidebar />
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
+      <div className="flex-1 flex flex-col overflow-x-hidden h-screen overflow-y-auto pb-24 md:pb-0">
         {/* Header */}
         <div style={{
           background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '20px 32px',
@@ -540,9 +540,9 @@ export default function InventoryPage() {
           </div>
 
           {/* Catalog & History Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+          <div className="flex flex-col lg:flex-row gap-6">
             {/* Products Table */}
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 24 }}>
+            <div className="flex-1 lg:w-2/3 bg-white border border-slate-200 rounded-2xl p-4 md:p-6 w-full min-w-0">
               {/* Search & Filter Bar */}
               <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
                 <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
@@ -655,7 +655,7 @@ export default function InventoryPage() {
             </div>
 
             {/* History Logs */}
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column' }}>
+            <div className="w-full lg:w-1/3 bg-white border border-slate-200 rounded-2xl p-4 md:p-6 flex flex-col">
               <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <History className="w-4 h-4" /> Stock History (Khata)
               </h2>
