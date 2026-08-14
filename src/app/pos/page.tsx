@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { playSuccessSound, playErrorSound } from '@/lib/sounds';
 import { io } from 'socket.io-client';
 import Logo from '@/components/Logo';
+import Sidebar from '@/components/Sidebar';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Scan,
@@ -659,7 +660,9 @@ export default function PosPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#fafafa] text-zinc-900 font-sans antialiased overflow-hidden">
+    <div className="flex h-screen bg-[#fafafa] overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-col flex-1 h-screen text-zinc-900 font-sans antialiased overflow-hidden relative">
       {/* Toast Notification (Sleek Card on Right Side) */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 max-w-[320px] px-4 py-3 rounded-xl shadow-2xl border text-[13px] font-bold flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 ${
@@ -691,6 +694,17 @@ export default function PosPage() {
           
           {/* Mobile Right Actions */}
           <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => enableBillMode()}
+              className="relative flex items-center justify-center text-gray-700 bg-gray-50 hover:bg-gray-100 w-8 h-8 rounded-full shadow-sm border border-gray-200"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {cartTotals.itemCount > 0 && !isBillMode && (
+                <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white rounded-full text-[9px] font-black w-4 h-4 flex items-center justify-center border border-white">
+                  {cartTotals.itemCount}
+                </span>
+              )}
+            </button>
             <button
               onClick={() => {
                 setQuickAddBarcode('');
@@ -1221,62 +1235,6 @@ export default function PosPage() {
           </div>
         </section>
         )}
-
-        {/* POS Mobile Bottom Nav (Hidden on Desktop) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[90] flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-4px_24px_rgba(0,0,0,0.04)]">
-            <button
-              onClick={() => setIsBillMode(false)}
-              className={`flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors ${!isBillMode ? 'text-[#059669]' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              <div className={`p-1.5 rounded-full ${!isBillMode ? 'bg-green-50' : ''}`}>
-                 <LayoutDashboard className="w-5 h-5" />
-              </div>
-              <span className={`text-[10px] tracking-tight ${!isBillMode ? 'font-bold' : 'font-medium'}`}>Products</span>
-            </button>
-            <button
-              onClick={() => {
-                setIsBillMode(false);
-                setTimeout(() => searchInputRef.current?.focus(), 100);
-              }}
-              className="flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors text-slate-500 hover:text-slate-800"
-            >
-              <div className="p-1.5 rounded-full">
-                 <Scan className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] tracking-tight font-medium">Scan</span>
-            </button>
-            <button
-              onClick={() => {
-                fetchOnlineOrders();
-                setShowOnlineDrawer(true);
-              }}
-              className="relative flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors text-slate-500 hover:text-slate-800"
-            >
-              <div className="p-1.5 rounded-full relative">
-                 <ShoppingBag className="w-5 h-5" />
-                 {pendingOnlineCount > 0 && (
-                    <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center border border-white">
-                      {pendingOnlineCount}
-                    </span>
-                  )}
-              </div>
-              <span className="text-[10px] tracking-tight font-medium">Orders</span>
-            </button>
-            <button
-              onClick={() => enableBillMode()}
-              className={`relative flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors ${isBillMode ? 'text-[#059669]' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              <div className={`p-1.5 rounded-full relative ${isBillMode ? 'bg-green-50' : ''}`}>
-                 <ShoppingCart className="w-5 h-5" />
-                 {cartTotals.itemCount > 0 && !isBillMode && (
-                    <span className="absolute top-0 right-0 bg-emerald-500 text-white rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center border border-white">
-                      {cartTotals.itemCount}
-                    </span>
-                  )}
-              </div>
-              <span className={`text-[10px] tracking-tight ${isBillMode ? 'font-bold' : 'font-medium'}`}>Cart</span>
-            </button>
-        </nav>
       </main>
 
       {/* Online Orders Sidebar Drawer (Same logic, lighter UI) */}
@@ -1695,6 +1653,7 @@ export default function PosPage() {
         </div>
       )}
 
+    </div>
     </div>
   );
 }
