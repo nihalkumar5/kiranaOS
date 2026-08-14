@@ -674,22 +674,41 @@ export default function PosPage() {
       )}
 
       {/* POS Header with Glassmorphism */}
-      <header className="bg-white/70 backdrop-blur-xl border-b border-white/20 h-20 sticky top-0 z-30 flex items-center justify-between px-6 no-print shadow-[0_4px_30px_rgb(0,0,0,0.03)]">
-        <div className="flex items-center gap-6">
-          <div className="flex-shrink-0 pr-6 py-2">
-            <h1><Logo suffix="POS" size="md" /></h1>
-          </div>
-          <div className="flex flex-col">
-            <h3 className="font-extrabold text-[14px] text-gray-900">{store?.name || 'KiranaOS Terminal'}</h3>
-            <div className="text-[12px] text-gray-500 font-medium flex gap-2">
-              <span>Cashier: {user.name}</span>
+      <header className="bg-white/70 backdrop-blur-xl border-b border-white/20 sticky top-0 z-30 flex flex-col md:flex-row items-center justify-between px-4 py-3 md:px-6 md:h-20 no-print shadow-[0_4px_30px_rgb(0,0,0,0.03)] gap-3 md:gap-0">
+        
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <div className="flex items-center gap-3 md:gap-6">
+            <div className="flex-shrink-0 pr-0 md:pr-6 py-1 md:py-2">
+              <h1><Logo suffix="POS" size="md" /></h1>
             </div>
+            <div className="hidden md:flex flex-col">
+              <h3 className="font-extrabold text-[14px] text-gray-900">{store?.name || 'KiranaOS Terminal'}</h3>
+              <div className="text-[12px] text-gray-500 font-medium flex gap-2">
+                <span>Cashier: {user.name}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Mobile Right Actions */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              onClick={() => {
+                setQuickAddBarcode('');
+                setShowQuickAddModal(true);
+              }}
+              className="flex items-center justify-center bg-[#059669] text-white w-8 h-8 rounded-full shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button onClick={logout} className="text-red-400 p-2">
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
-        <div className="flex-1 max-w-[600px] relative mx-8 group">
+        <div className="w-full md:flex-1 max-w-full md:max-w-[600px] relative mx-0 md:mx-8 group">
           <div className="absolute inset-0 bg-gradient-to-r from-gray-200 to-gray-300 rounded-full blur opacity-0 group-focus-within:opacity-10 transition duration-500"></div>
-          <Search className="w-5 h-5 text-zinc-400 absolute left-5 top-[15px] z-10" />
+          <Search className="w-5 h-5 text-zinc-400 absolute left-4 md:left-5 top-[11px] md:top-[15px] z-10" />
           <input
             autoFocus
             ref={searchInputRef}
@@ -726,11 +745,11 @@ export default function PosPage() {
               }
             }}
             placeholder='Search or Scan Barcode...'
-            className="w-full bg-gray-50/50 backdrop-blur-sm border border-gray-200 focus:bg-white focus:border-zinc-300 focus:ring-4 focus:ring-zinc-500/10 rounded-full pl-14 pr-6 py-3.5 text-[15px] font-bold focus:outline-none transition-all placeholder-gray-400 text-gray-900 shadow-inner relative z-0"
+            className="w-full bg-gray-50/50 backdrop-blur-sm border border-gray-200 focus:bg-white focus:border-zinc-300 focus:ring-4 focus:ring-zinc-500/10 rounded-full pl-12 md:pl-14 pr-6 py-2.5 md:py-3.5 text-[14px] md:text-[15px] font-bold focus:outline-none transition-all placeholder-gray-400 text-gray-900 shadow-inner relative z-0"
           />
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-4">
           <button
             onClick={() => {
               setQuickAddBarcode('');
