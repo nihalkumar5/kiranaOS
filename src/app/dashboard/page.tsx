@@ -177,7 +177,7 @@ export default function DashboardPage() {
   ] : [];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#fafafa', backgroundImage: 'linear-gradient(to right, #f3f4f6 1px, transparent 1px), linear-gradient(to bottom, #f3f4f6 1px, transparent 1px)', backgroundSize: '40px 40px', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
 
       {/* Real-time Order Notification */}
       {orderAlert && (
@@ -246,9 +246,9 @@ export default function DashboardPage() {
             <button
               onClick={() => router.push('/pos')}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: '#111827', color: '#ffffff', borderRadius: 8, fontWeight: 700, fontSize: 13,
-                padding: '10px 20px', border: '1px solid #000', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#111827', color: '#ffffff', borderRadius: 10, fontWeight: 700, fontSize: 13,
+                padding: '10px 18px', border: 'none', cursor: 'pointer',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s',
               }}
             >
@@ -257,9 +257,9 @@ export default function DashboardPage() {
             <button
               onClick={() => router.push('/inventory')}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: '#ffffff', color: '#111827', borderRadius: 8, fontWeight: 700, fontSize: 13,
-                padding: '10px 20px', border: '1px solid #000', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8,
+                background: '#ffffff', color: '#111827', borderRadius: 10, fontWeight: 700, fontSize: 13,
+                padding: '10px 18px', border: '1px solid #cbd5e1', cursor: 'pointer',
                 boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s',
               }}
             >
@@ -282,7 +282,7 @@ export default function DashboardPage() {
                 {statCards.map((card, i) => (
                   <div key={i} style={{
                     background: '#fff', padding: '24px',
-                    border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                    border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
                     position: 'relative', display: 'flex', flexDirection: 'column', gap: 12,
                   }}>
                     <div style={{
@@ -309,7 +309,7 @@ export default function DashboardPage() {
 
                 {/* Category Sales */}
                 <div style={{
-                  background: '#fff', padding: 24, border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                  background: '#fff', padding: 24, border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -350,7 +350,7 @@ export default function DashboardPage() {
 
                 {/* Best Sellers */}
                 <div style={{
-                  background: '#fff', padding: 24, border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                  background: '#fff', padding: 24, border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
                 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
                     <ShoppingBag className="w-4 h-4" style={{ color: '#111827' }} />
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                       return (
                         <div key={i} style={{
                           display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '10px 12px', background: '#fff', border: '1px solid #000',
+                          padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
                         }}>
                           <div style={{
                             width: 28, height: 28, background: '#000',
@@ -392,7 +392,7 @@ export default function DashboardPage() {
 
                 {/* Low Stock Alerts */}
                 <div style={{
-                  background: '#fff', padding: 24, border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                  background: '#fff', padding: 24, border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -418,7 +418,7 @@ export default function DashboardPage() {
                     ) : stats.lowStock.items.map((item) => (
                       <div key={item.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '10px 14px', background: '#fff', border: '1px solid #000', borderLeft: '4px solid #3b82f6', borderRadius: '0 8px 8px 0',
+                        padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '4px solid #3b82f6', borderRadius: '10px',
                       }}>
                         <div>
                           <p style={{ fontSize: 12, fontWeight: 700, color: '#111827', margin: 0 }}>{item.name}</p>
@@ -434,7 +434,7 @@ export default function DashboardPage() {
 
                 {/* QR Code */}
                 <div style={{
-                  background: '#000', padding: 24, color: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                  background: '#111827', padding: 24, color: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
                 }}>
                   <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
