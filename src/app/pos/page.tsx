@@ -838,7 +838,8 @@ export default function PosPage() {
                     
                     <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide">
                       {catProducts.map((p) => {
-                        const isOutOfStock = Number(p.stock) <= 0;
+                        const isOutOfStock = false; // ALLOW NEGATIVE STOCK
+                        const showLowStock = Number(p.stock) <= 0;
                         const cartQty = cart[p.barcode || p.id]?.quantity || 0;
                         const sellingPrice = Number(p.sellingPrice);
                         // Mock MRP Calculation for UI purposes
@@ -853,11 +854,9 @@ export default function PosPage() {
                             whileHover={{ y: -2, boxShadow: "0 10px 20px -10px rgba(0,0,0,0.05)" }}
                             key={p.id}
                             onClick={() => {
-                              if (!isOutOfStock) {
                                 handleGridProductTap(p);
-                              }
                             }}
-                            className={`w-[150px] flex-shrink-0 bg-white border border-gray-200 rounded-[12px] flex flex-col hover:shadow-md transition-all duration-200 relative overflow-hidden cursor-pointer ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
+                            className={`w-[150px] flex-shrink-0 bg-white border border-gray-200 rounded-[12px] flex flex-col hover:shadow-md transition-all duration-200 relative overflow-hidden cursor-pointer`}
                           >
                             <div className="h-[120px] w-full flex items-center justify-center relative bg-gray-50/50 border-b border-gray-100 overflow-hidden">
                               {p.image ? (
@@ -873,7 +872,7 @@ export default function PosPage() {
 
                             <div className="flex-1 flex flex-col p-2.5">
                               <h4 className="font-semibold text-slate-800 text-[13px] leading-snug line-clamp-2 min-h-[38px] tracking-tight">{p.name}</h4>
-                              <p className="text-[12px] font-medium text-slate-500 mt-1 mb-3">{p.unit} {isOutOfStock && <span className="text-red-500 font-bold ml-1">(Out of stock)</span>}</p>
+                              <p className="text-[12px] font-medium text-slate-500 mt-1 mb-3">{p.unit} {showLowStock && <span className="text-orange-500 font-bold ml-1">(Stock: {Number(p.stock)})</span>}</p>
 
                               <div className="flex items-end justify-between mt-auto">
                                   <div className="flex flex-col justify-end">
@@ -888,7 +887,7 @@ export default function PosPage() {
                                   </div>
 
                                 <div className="flex-shrink-0">
-                                  {!isOutOfStock && cartQty > 0 ? (
+                                  {cartQty > 0 ? (
                                     <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center bg-[#f3fbf4] border border-[#059669] text-[#059669] rounded-lg overflow-hidden text-sm font-medium h-[32px] w-[64px]" onClick={(e) => e.stopPropagation()}>
                                       <button onClick={() => updateQuantity(p.barcode || p.id, cartQty - 1)} className="flex-1 flex justify-center items-center h-full hover:bg-[#e4f6e6] transition-colors">
                                         <Minus className="w-3 h-3" />
@@ -900,7 +899,6 @@ export default function PosPage() {
                                     </motion.div>
                                   ) : (
                                     <button
-                                      disabled={isOutOfStock}
                                       className="bg-white border border-[#059669] text-[#059669] hover:bg-[#f3fbf4] font-bold h-[32px] w-[64px] rounded-lg text-[11px] uppercase transition-colors flex justify-center items-center tracking-wider shadow-sm"
                                     >
                                       ADD
