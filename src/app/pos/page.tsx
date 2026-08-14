@@ -728,6 +728,11 @@ export default function PosPage() {
             ref={searchInputRef}
             type="text"
             value={searchQuery}
+            onFocus={() => {
+              if (window.innerWidth < 768 && isBillMode) {
+                setIsBillMode(false);
+              }
+            }}
             onChange={(e) => {
               setSearchQuery(e.target.value);
             }}
