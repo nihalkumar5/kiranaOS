@@ -146,6 +146,13 @@ export default function PosPage() {
   const [activeOrderTab, setActiveOrderTab] = useState<'online' | 'recent'>('online');
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
+  // Quick Add Item State
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
+  const [quickAddBarcode, setQuickAddBarcode] = useState('');
+  const [quickAddName, setQuickAddName] = useState('');
+  const [quickAddPrice, setQuickAddPrice] = useState('');
+  const [isQuickAdding, setIsQuickAdding] = useState(false);
+
   // Bill Mode State
   const [isBillMode, setIsBillMode] = useState(false);
 
@@ -446,6 +453,46 @@ export default function PosPage() {
     customerMobileRef.current?.focus();
   };
 
+  const handleQuickAddProduct = async () => {
+    if (!quickAddName || !quickAddPrice) {
+      showToast('Name and Selling Price are required', 'error');
+      return;
+    }
+    setIsQuickAdding(true);
+    try {
+      const payload = {
+        name: quickAddName,
+        barcode: quickAddBarcode || null,
+        sellingPrice: quickAddPrice,
+        purchasePrice: quickAddPrice, // Default to selling price
+        stock: '100', // Default stock
+        unit: 'pc',
+        gst: '0',
+        storeId: store?.id
+      };
+      const res = await api.post('/products', payload);
+      const newProduct = res.data.data;
+      
+      showToast('Product added successfully!', 'success');
+      playSuccessSound();
+      setShowQuickAddModal(false);
+      setQuickAddName('');
+      setQuickAddPrice('');
+      setQuickAddBarcode('');
+      
+      // Refresh products
+      fetchProducts();
+      
+      // Automatically add to cart
+      handleGridProductTap(newProduct);
+    } catch (err: any) {
+      playErrorSound();
+      showToast(err.response?.data?.message || 'Failed to add product', 'error');
+    } finally {
+      setIsQuickAdding(false);
+    }
+  };
+
   const cartTotals = useMemo(() => {
     let subtotal = 0; 
     let totalTax = 0; 
@@ -670,8 +717,9 @@ export default function PosPage() {
                 if (matchedProduct) {
                   handleGridProductTap(matchedProduct);
                 } else {
-                  showToast('Product not found for this barcode', 'error');
                   playErrorSound();
+                  setQuickAddBarcode(cleanQuery);
+                  setShowQuickAddModal(true);
                 }
               }
             }}
@@ -727,9 +775,9 @@ export default function PosPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex overflow-hidden no-print">
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden no-print relative">
         {/* Left Side: E-Commerce View */}
-        <section className="flex-1 overflow-y-auto bg-white border-r border-gray-100">
+        <section className={`flex-1 overflow-y-auto bg-white md:border-r border-gray-100 pb-20 md:pb-0 ${isBillMode ? 'hidden md:block' : 'block'}`}>
           <div className="max-w-[1200px] mx-auto px-6 py-6 pb-24">
             
             {!searchQuery && !isBillMode && (
@@ -746,7 +794,7 @@ export default function PosPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
                   {/* Kirana Grocery Banner */}
                   <div className="relative w-full h-36 rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 bg-[#059669]">
                     <div className="absolute inset-0 flex items-center justify-end pr-2">
@@ -796,7 +844,7 @@ export default function PosPage() {
                   <ShoppingBag className="w-6 h-6 text-[#059669]" />
                   Shop by Category
                 </h2>
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-8">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-4 gap-y-6 md:gap-x-6 md:gap-y-8">
                   {[
                     {name: 'Paan Corner', img: 'https://images.unsplash.com/photo-1599305090598-fe179d501227?w=200&h=200&fit=crop'},
                     {name: 'Dairy, Bread & Eggs', img: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&h=200&fit=crop'},
@@ -920,7 +968,7 @@ export default function PosPage() {
 
         {/* Right Side: The Cashier Cart Panel (Blinkit style cart) */}
         {isBillMode && (
-        <section className="w-[480px] bg-[#f4f6f9] border-l border-gray-200 flex flex-col z-20 h-full flex-shrink-0 shadow-[inset_4px_0_24px_rgba(0,0,0,0.02)]">
+        <section className="w-full md:w-[480px] bg-[#f4f6f9] md:border-l border-gray-200 flex flex-col z-20 h-full flex-shrink-0 shadow-[inset_4px_0_24px_rgba(0,0,0,0.02)] absolute md:relative inset-0 pb-20 md:pb-0">
           {/* Cart Header */}
           <div className="bg-[#1e293b] px-5 py-4 flex items-center justify-between border-b border-slate-700/50 shadow-sm z-10">
             <div>
@@ -1130,6 +1178,62 @@ export default function PosPage() {
           </div>
         </section>
         )}
+
+        {/* POS Mobile Bottom Nav (Hidden on Desktop) */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-[90] flex items-center justify-around px-2 py-2 pb-safe shadow-[0_-4px_24px_rgba(0,0,0,0.04)]">
+            <button
+              onClick={() => setIsBillMode(false)}
+              className={`flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors ${!isBillMode ? 'text-[#059669]' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              <div className={`p-1.5 rounded-full ${!isBillMode ? 'bg-green-50' : ''}`}>
+                 <LayoutDashboard className="w-5 h-5" />
+              </div>
+              <span className={`text-[10px] tracking-tight ${!isBillMode ? 'font-bold' : 'font-medium'}`}>Products</span>
+            </button>
+            <button
+              onClick={() => {
+                setIsBillMode(false);
+                setTimeout(() => searchInputRef.current?.focus(), 100);
+              }}
+              className="flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors text-slate-500 hover:text-slate-800"
+            >
+              <div className="p-1.5 rounded-full">
+                 <Scan className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] tracking-tight font-medium">Scan</span>
+            </button>
+            <button
+              onClick={() => {
+                fetchOnlineOrders();
+                setShowOnlineDrawer(true);
+              }}
+              className="relative flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors text-slate-500 hover:text-slate-800"
+            >
+              <div className="p-1.5 rounded-full relative">
+                 <ShoppingBag className="w-5 h-5" />
+                 {pendingOnlineCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-red-500 text-white rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center border border-white">
+                      {pendingOnlineCount}
+                    </span>
+                  )}
+              </div>
+              <span className="text-[10px] tracking-tight font-medium">Orders</span>
+            </button>
+            <button
+              onClick={() => enableBillMode()}
+              className={`relative flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors ${isBillMode ? 'text-[#059669]' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              <div className={`p-1.5 rounded-full relative ${isBillMode ? 'bg-green-50' : ''}`}>
+                 <ShoppingCart className="w-5 h-5" />
+                 {cartTotals.itemCount > 0 && !isBillMode && (
+                    <span className="absolute top-0 right-0 bg-emerald-500 text-white rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center border border-white">
+                      {cartTotals.itemCount}
+                    </span>
+                  )}
+              </div>
+              <span className={`text-[10px] tracking-tight ${isBillMode ? 'font-bold' : 'font-medium'}`}>Cart</span>
+            </button>
+        </nav>
       </main>
 
       {/* Online Orders Sidebar Drawer (Same logic, lighter UI) */}
@@ -1465,6 +1569,71 @@ export default function PosPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Quick Add Product Modal */}
+      {showQuickAddModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 no-print">
+          <div className="bg-white rounded-[24px] shadow-2xl w-full max-w-sm m-4 flex flex-col p-6 relative">
+            <button onClick={() => { setShowQuickAddModal(false); searchInputRef.current?.focus(); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6 mt-2">
+              <div className="bg-orange-50 text-orange-500 w-10 h-10 rounded-full flex items-center justify-center">
+                <Plus className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-gray-900 tracking-tight">Quick Add Item</h2>
+                <p className="text-gray-500 text-[12px] font-medium">Barcode not found. Add it now.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1.5">Barcode</label>
+                <div className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] font-mono text-gray-700 font-medium">
+                  {quickAddBarcode}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">Item Name <span className="text-red-500">*</span></label>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="e.g. Kurkure Solid Masti"
+                  value={quickAddName}
+                  onChange={(e) => setQuickAddName(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#059669] rounded-xl px-3 py-3 text-sm text-gray-900 font-bold outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">Selling Price (₹) <span className="text-red-500">*</span></label>
+                <input
+                  type="number"
+                  placeholder="e.g. 20"
+                  value={quickAddPrice}
+                  onChange={(e) => setQuickAddPrice(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleQuickAddProduct();
+                  }}
+                  className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#059669] rounded-xl px-3 py-3 text-sm text-gray-900 font-bold outline-none transition-colors"
+                />
+              </div>
+
+              <button
+                onClick={handleQuickAddProduct}
+                disabled={isQuickAdding || !quickAddName || !quickAddPrice}
+                className="w-full mt-2 bg-[#059669] disabled:bg-gray-300 disabled:text-gray-500 active:bg-green-700 text-white font-bold py-3.5 rounded-xl text-[14px] shadow-sm transition-colors flex justify-center items-center gap-2"
+              >
+                {isQuickAdding ? <span className="animate-spin border-2 border-white/20 border-t-white w-4 h-4 rounded-full"></span> : <CheckCircle className="w-4 h-4" />}
+                Add & Add to Bill
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
