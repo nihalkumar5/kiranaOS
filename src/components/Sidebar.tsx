@@ -62,7 +62,7 @@ export default function Sidebar() {
               className={`flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors ${isActive ? 'text-[#059669]' : 'text-slate-500 hover:text-slate-800'}`}
             >
               <div className={`p-1.5 rounded-full ${isActive ? 'bg-green-50' : ''}`}>
-                 {React.cloneElement(item.icon as React.ReactElement, { className: 'w-5 h-5' })}
+                 {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: 'w-5 h-5' })}
               </div>
               <span className={`text-[10px] tracking-tight ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label.replace('Online Store', 'Store').replace('POS Billing', 'POS')}</span>
             </button>
