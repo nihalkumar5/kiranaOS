@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import Logo from '@/components/Logo';
+import Sidebar from '@/components/Sidebar';
 import {
   Calendar,
   Download,
@@ -227,7 +228,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#fafafa', backgroundImage: 'linear-gradient(to right, #f3f4f6 1px, transparent 1px), linear-gradient(to bottom, #f3f4f6 1px, transparent 1px)', backgroundSize: '40px 40px', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
       
       {/* Toast */}
       {toast && (
@@ -246,37 +247,7 @@ export default function ReportsPage() {
       )}
 
       {/* Sidebar */}
-      <aside style={{
-        width: 240, background: '#fff', borderRight: '1px solid #e5e7eb',
-        display: 'flex', flexDirection: 'column', padding: '28px 16px',
-        gap: 8, flexShrink: 0, height: '100vh', position: 'sticky', top: 0
-      }}>
-        <div style={{ marginBottom: 32, paddingLeft: 8 }}>
-          <Logo size="md" />
-        </div>
-
-        {[
-          { icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard', active: false, onClick: () => router.push('/dashboard') },
-          { icon: <Zap className="w-4 h-4" />, label: 'POS Terminal', active: false, onClick: () => router.push('/pos') },
-          { icon: <Package className="w-4 h-4" />, label: 'Inventory', active: false, onClick: () => router.push('/inventory') },
-          { icon: <BarChart2 className="w-4 h-4" />, label: 'Reports', active: true, onClick: () => {} },
-          { icon: <Globe className="w-4 h-4" />, label: 'Storefront', active: false, onClick: () => router.push('/storefront-builder') },
-        ].map(item => (
-          <button key={item.label} onClick={item.onClick} style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', background: item.active ? '#f3f4f6' : 'transparent', 
-            color: item.active ? '#111827' : '#6b7280',
-            fontWeight: item.active ? 800 : 600, fontSize: 13,
-            border: 'none', 
-            cursor: 'pointer', width: '100%', textAlign: 'left',
-            transition: 'all 0.15s',
-            boxShadow: item.active ? '4px 4px 0px 0px rgba(0,0,0,1)' : 'none',
-            marginBottom: item.active ? '4px' : '0'
-          }}>
-            {item.icon} {item.label}
-          </button>
-        ))}
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>

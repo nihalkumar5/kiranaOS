@@ -14,6 +14,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import Sidebar from '@/components/Sidebar';
 import { api } from '@/lib/api';
 
 export default function StorefrontBuilder() {
@@ -84,26 +85,9 @@ export default function StorefrontBuilder() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
       {/* Sidebar */}
-      <aside className="w-[240px] bg-white border-r border-gray-200 flex flex-col py-7 px-4 shrink-0">
-        <div className="mb-8 pl-2">
-          <Logo size="md" />
-        </div>
-        <div className="flex flex-col gap-2">
-          {[
-            { icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard', active: false, onClick: () => router.push('/dashboard') },
-            { icon: <Zap className="w-4 h-4" />, label: 'POS Terminal', active: false, onClick: () => router.push('/pos') },
-            { icon: <Package className="w-4 h-4" />, label: 'Inventory', active: false, onClick: () => router.push('/inventory') },
-            { icon: <BarChart2 className="w-4 h-4" />, label: 'Reports', active: false, onClick: () => router.push('/reports') },
-            { icon: <Globe className="w-4 h-4" />, label: 'Storefront', active: true, onClick: () => {} },
-          ].map(item => (
-            <button key={item.label} onClick={item.onClick} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${item.active ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-500 hover:bg-gray-50'}`}>
-              {item.icon} {item.label}
-            </button>
-          ))}
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col max-h-screen overflow-hidden">

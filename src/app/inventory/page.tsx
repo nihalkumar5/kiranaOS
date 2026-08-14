@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import Logo from '@/components/Logo';
+import Sidebar from '@/components/Sidebar';
 import {
   Plus,
   History,
@@ -366,37 +367,7 @@ export default function InventoryPage() {
       )}
 
       {/* Sidebar */}
-      <aside style={{
-        width: 240, background: '#fff', borderRight: '1px solid #e2e8f0',
-        display: 'flex', flexDirection: 'column', padding: '24px 16px',
-        gap: 8, flexShrink: 0, height: '100vh', position: 'sticky', top: 0
-      }}>
-        <div style={{ marginBottom: 28, paddingLeft: 8 }}>
-          <Logo size="md" />
-        </div>
-
-        {[
-          { icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard', active: false, onClick: () => router.push('/dashboard') },
-          { icon: <Zap className="w-4 h-4" />, label: 'POS Billing', active: false, onClick: () => router.push('/pos') },
-          { icon: <Boxes className="w-4 h-4" />, label: 'Inventory', active: true, onClick: () => {} },
-          { icon: <BarChart2 className="w-4 h-4" />, label: 'Reports', active: false, onClick: () => router.push('/reports') },
-          { icon: <Globe className="w-4 h-4" />, label: 'Online Store', active: false, onClick: () => router.push('/storefront-builder') },
-        ].map((item) => (
-          <button
-            key={item.label}
-            onClick={item.onClick}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-              borderRadius: 12, border: 'none', background: item.active ? '#0f172a' : 'transparent',
-              color: item.active ? '#fff' : '#64748b', fontWeight: item.active ? 700 : 600,
-              fontSize: 14, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s'
-            }}
-          >
-            {item.icon}
-            {item.label}
-          </button>
-        ))}
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
