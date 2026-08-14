@@ -8,6 +8,7 @@ import {
   Boxes,
   BarChart2,
   Globe,
+  Settings,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
 
@@ -21,6 +22,7 @@ export default function Sidebar() {
     { icon: <Boxes className="w-4 h-4" />, label: 'Inventory', path: '/inventory' },
     { icon: <BarChart2 className="w-4 h-4" />, label: 'Reports', path: '/reports' },
     { icon: <Globe className="w-4 h-4" />, label: 'Online Store', path: '/storefront-builder' },
+    { icon: <Settings className="w-4 h-4" />, label: 'Settings', path: '/settings' },
   ];
 
   return (
