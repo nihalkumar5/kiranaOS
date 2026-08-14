@@ -250,18 +250,15 @@ export default function ReportsPage() {
       <Sidebar />
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-0">
         
         {/* Top Bar */}
-        <div style={{
-          background: '#fff', borderBottom: '1px solid #e5e7eb',
-          padding: '24px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
+        <div className="bg-white border-b border-gray-200 p-4 md:p-6 lg:px-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <p style={{ fontSize: 13, color: '#666', fontWeight: 600, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Analytics & Data</p>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: '#111827', margin: 0, lineHeight: 1.2 }}>Dukaan Ka Khata (Reports)</h1>
+            <p className="text-[13px] text-gray-600 font-semibold mb-1 uppercase tracking-wide">Analytics & Data</p>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 m-0 leading-tight">Dukaan Ka Khata (Reports)</h1>
           </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center w-full lg:w-auto">
             
             {/* Dates */}
             <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 16, padding: '8px 12px', gap: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
@@ -312,11 +309,11 @@ export default function ReportsPage() {
             <div style={{ width: 40, height: 40, border: '1px solid #e5e7eb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           </div>
         ) : aggregate ? (
-          <div style={{ padding: '32px 40px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+          <div className="p-4 md:p-6 lg:px-10 flex flex-col gap-6 md:gap-8">
             
             {/* KPI Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24 }}>
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 flex items-center justify-between shadow-sm">
                 <div>
                   <p style={{ fontSize: 11, fontWeight: 800, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>Total Bika (Sales)</p>
                   <h3 style={{ fontSize: 26, fontWeight: 900, color: '#111827', margin: 0 }}>₹{aggregate.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</h3>
@@ -357,10 +354,10 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+            <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
               
               {/* Sales Graph */}
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '28px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <div className="flex-1 lg:w-2/3 bg-white border border-gray-200 rounded-2xl p-4 md:p-7 shadow-sm">
                 <h2 style={{ fontSize: 18, fontWeight: 900, color: '#111827', margin: '0 0 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Activity className="w-5 h-5" />
                   Sales ka Graph
@@ -407,7 +404,7 @@ export default function ReportsPage() {
               </div>
 
               {/* Payment Methods */}
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '28px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+              <div className="w-full lg:w-1/3 bg-white border border-gray-200 rounded-2xl p-4 md:p-7 shadow-sm">
                 <h2 style={{ fontSize: 18, fontWeight: 900, color: '#111827', margin: '0 0 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Coins className="w-5 h-5" />
                   Paisa Kaise Aaya
@@ -438,7 +435,7 @@ export default function ReportsPage() {
             </div>
 
             {/* Cash Tally Table */}
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '28px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <div className="bg-white border border-gray-200 rounded-2xl p-4 md:p-7 shadow-sm">
               <h2 style={{ fontSize: 18, fontWeight: 900, color: '#111827', margin: '0 0 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <History className="w-5 h-5" />
                 Galle ka Hisaab (Cash Logs)

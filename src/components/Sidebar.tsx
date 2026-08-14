@@ -59,12 +59,12 @@ export default function Sidebar() {
             <button
               key={item.label}
               onClick={() => router.push(item.path)}
-              className={`flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-colors ${isActive ? 'text-[#059669]' : 'text-slate-500 hover:text-slate-800'}`}
+              className={`flex flex-col items-center justify-center gap-1 w-full py-1 rounded-xl transition-all duration-200 ${isActive ? 'text-emerald-700 -translate-y-1' : 'text-slate-500 hover:text-slate-800'}`}
             >
-              <div className={`p-1.5 rounded-full ${isActive ? 'bg-green-50' : ''}`}>
-                 {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: 'w-5 h-5' })}
+              <div className={`p-2 rounded-xl ${isActive ? 'bg-emerald-100 shadow-sm border border-emerald-200/60' : 'p-1.5'}`}>
+                 {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: isActive ? 'w-5 h-5 stroke-[2.5px]' : 'w-5 h-5' })}
               </div>
-              <span className={`text-[10px] tracking-tight ${isActive ? 'font-bold' : 'font-medium'}`}>{item.label.replace('Online Store', 'Store').replace('POS Billing', 'POS')}</span>
+              <span className={`text-[10px] tracking-tight ${isActive ? 'font-black' : 'font-semibold'}`}>{item.label.replace('Online Store', 'Store').replace('POS Billing', 'POS')}</span>
             </button>
           );
         })}
