@@ -28,7 +28,7 @@ import {
   XCircle,
   X,
   Sparkles,
-  ShoppingBag,
+  ShoppingBag, Zap,
   Users
 } from 'lucide-react';
 
@@ -896,6 +896,124 @@ export default function PosPage() {
               </div>
             )}
 
+
+            {!searchQuery && productsList.length > 0 && (
+              <div className="mb-12 flex flex-col">
+                <div className="flex justify-between items-end mb-4">
+                  <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-[#059669]" />
+                    Quick Items
+                  </h2>
+                  <button className="text-[#059669] font-bold text-sm hover:underline">see all</button>
+                </div>
+                
+                <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide">
+                  {productsList.slice(0, 8).map((p) => {
+const isOutOfStock = false; // ALLOW NEGATIVE STOCK
+                        const showLowStock = Number(p.stock) <= 0;
+                        const cartQty = cart[p.barcode || p.id]?.quantity || 0;
+                        const sellingPrice = Number(p.sellingPrice);
+                        // Mock MRP Calculation for UI purposes
+                        const mrp = Math.max(Number(p.purchasePrice || 0), Math.ceil((sellingPrice * 1.25)/10)*10);
+                        const discount = mrp - sellingPrice;
+
+                        return (
+                          <motion.div
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            whileHover={{ y: -2, boxShadow: "0 10px 20px -10px rgba(0,0,0,0.05)" }}
+                            key={p.id}
+                            onClick={() => {
+                                handleGridProductTap(p);
+                            }}
+                            className={`w-[150px] flex-shrink-0 bg-white border border-gray-200 rounded-[12px] flex flex-col hover:shadow-md transition-all duration-200 relative overflow-hidden cursor-pointer`}
+                          >
+                            <div className="h-[120px] w-full flex items-center justify-center relative bg-gray-50/50 border-b border-gray-100 overflow-hidden">
+                              {p.image ? (
+                                <motion.img whileHover={{ scale: 1.05 }} src={p.image} className="object-cover w-full h-full mix-blend-multiply transition-transform duration-500 ease-out" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-zinc-800 bg-gray-50 rounded-lg">
+                                  <span className="font-normal text-3xl tracking-tight">{p.name.substring(0, 2).toUpperCase()}</span>
+                                </div>
+                              )}
+                            </div>
+
+
+
+                            <div className="flex-1 flex flex-col p-2.5">
+                              <h4 className="font-semibold text-slate-800 text-[13px] leading-snug line-clamp-2 min-h-[38px] tracking-tight">{p.name}</h4>
+                              <p className="text-[12px] font-medium text-slate-500 mt-1 mb-3">{p.unit} {showLowStock && <span className="text-orange-500 font-bold ml-1">(Stock: {Number(p.stock)})</span>}</p>
+
+                              <div className="flex items-end justify-between mt-auto">
+                                  <div className="flex flex-col justify-end">
+                                    <div className="font-bold text-[14px] text-gray-900 leading-none mb-1">
+                                      ₹{sellingPrice.toFixed(0)}
+                                    </div>
+                                    {discount > 0 && (
+                                      <div className="text-[10px] text-slate-500 font-medium leading-none">
+                                        MRP <span className="line-through">₹{mrp.toFixed(0)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                <div className="flex-shrink-0">
+                                  {cartQty > 0 ? (
+                                    <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center bg-[#f3fbf4] border border-[#059669] text-[#059669] rounded-lg overflow-hidden text-sm font-medium h-[32px] w-[64px]" onClick={(e) => e.stopPropagation()}>
+                                      <button onClick={() => updateQuantity(p.barcode || p.id, cartQty - 1)} className="flex-1 flex justify-center items-center h-full hover:bg-[#e4f6e6] transition-colors">
+                                        <Minus className="w-3 h-3" />
+                                      </button>
+                                      <span className="flex-1 text-center select-none text-[12px] font-bold">{cartQty}</span>
+                                      <button onClick={() => updateQuantity(p.barcode || p.id, cartQty + 1)} className="flex-1 flex justify-center items-center h-full hover:bg-[#e4f6e6] transition-colors">
+                                        <Plus className="w-3 h-3" />
+                                      </button>
+                                    </motion.div>
+                                  ) : (
+                                    <button
+                                      className="bg-white border border-[#059669] text-[#059669] hover:bg-[#f3fbf4] font-bold h-[32px] w-[64px] rounded-lg text-[11px] uppercase transition-colors flex justify-center items-center tracking-wider shadow-sm"
+                                    >
+                                      ADD
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                  })}
+                </div>
+              </div>
+            )}
+            {!searchQuery && (
+              <div className="mb-12">
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-6 flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-[#059669]" />
+                  Shop by Category
+                </h2>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-4 gap-y-6 md:gap-x-6 md:gap-y-8">
+                  {[
+                    {name: 'Paan Corner', img: 'https://images.unsplash.com/photo-1599305090598-fe179d501227?w=200&h=200&fit=crop'},
+                    {name: 'Dairy, Bread & Eggs', img: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&h=200&fit=crop'},
+                    {name: 'Fruits & Vegetables', img: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&h=200&fit=crop'},
+                    {name: 'Cold Drinks & Juices', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&h=200&fit=crop'},
+                    {name: 'Snacks & Munchies', img: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=200&h=200&fit=crop'},
+                    {name: 'Breakfast & Instant', img: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=200&h=200&fit=crop'},
+                    {name: 'Sweet Tooth', img: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=200&h=200&fit=crop'},
+                    {name: 'Bakery & Biscuits', img: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&h=200&fit=crop'},
+                    {name: 'Personal Care', img: 'https://images.unsplash.com/photo-1629198688000-71f23e745b6e?w=200&h=200&fit=crop'},
+                    {name: 'Home Care', img: 'https://images.unsplash.com/photo-1584820927498-cafe2c11818e?w=200&h=200&fit=crop'},
+                  ].map((cat, i) => (
+                    <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.95 }} key={i} className="flex flex-col items-center gap-3 cursor-pointer group">
+                      <div className="w-[88px] h-[88px] mx-auto bg-[#f4f6f9] rounded-[20px] overflow-hidden flex items-center justify-center shadow-sm border border-gray-100 group-hover:shadow-md group-hover:border-[#059669]/40 transition-all">
+                        <img src={cat.img} alt={cat.name} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
+                      </div>
+                      <span className="font-bold text-[13px] text-zinc-700 text-center leading-tight tracking-tight px-1 group-hover:text-[#059669] transition-colors">{cat.name}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {filteredProducts.length === 0 ? (
                <div className="py-20 flex flex-col items-center">
                  <div className="bg-gray-50 p-4 rounded-full mb-3 border border-gray-100">
@@ -991,38 +1109,6 @@ export default function PosPage() {
                 ))}
               </div>
             )}
-
-
-            {!searchQuery && (
-              <div className="mb-12">
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-6 flex items-center gap-2">
-                  <ShoppingBag className="w-6 h-6 text-[#059669]" />
-                  Shop by Category
-                </h2>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-4 gap-y-6 md:gap-x-6 md:gap-y-8">
-                  {[
-                    {name: 'Paan Corner', img: 'https://images.unsplash.com/photo-1599305090598-fe179d501227?w=200&h=200&fit=crop'},
-                    {name: 'Dairy, Bread & Eggs', img: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&h=200&fit=crop'},
-                    {name: 'Fruits & Vegetables', img: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&h=200&fit=crop'},
-                    {name: 'Cold Drinks & Juices', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&h=200&fit=crop'},
-                    {name: 'Snacks & Munchies', img: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=200&h=200&fit=crop'},
-                    {name: 'Breakfast & Instant', img: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=200&h=200&fit=crop'},
-                    {name: 'Sweet Tooth', img: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=200&h=200&fit=crop'},
-                    {name: 'Bakery & Biscuits', img: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&h=200&fit=crop'},
-                    {name: 'Personal Care', img: 'https://images.unsplash.com/photo-1629198688000-71f23e745b6e?w=200&h=200&fit=crop'},
-                    {name: 'Home Care', img: 'https://images.unsplash.com/photo-1584820927498-cafe2c11818e?w=200&h=200&fit=crop'},
-                  ].map((cat, i) => (
-                    <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.95 }} key={i} className="flex flex-col items-center gap-3 cursor-pointer group">
-                      <div className="w-[88px] h-[88px] mx-auto bg-[#f4f6f9] rounded-[20px] overflow-hidden flex items-center justify-center shadow-sm border border-gray-100 group-hover:shadow-md group-hover:border-[#059669]/40 transition-all">
-                        <img src={cat.img} alt={cat.name} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
-                      </div>
-                      <span className="font-bold text-[13px] text-zinc-700 text-center leading-tight tracking-tight px-1 group-hover:text-[#059669] transition-colors">{cat.name}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-
           </div>
         </section>
 
