@@ -1,13 +1,7 @@
 import axios from 'axios';
 
-// ─── API Base URL ─────────────────────────────────────────────────────────────
-// Browser  → uses NEXT_PUBLIC_API_URL (http://localhost:3000) set in docker-compose
-// SSR      → uses INTERNAL_API_URL (http://kiranaos_backend:3000) for Docker networking
-// Fallback → http://localhost:3000 for local dev without Docker
-const API_URL =
-  typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') // browser
-    : (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'); // SSR
+// Unified Next.js API base URL
+const API_URL = '/api';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -55,7 +49,6 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Queue parallel requests while refreshing
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -79,7 +72,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const REFRESH_URL = `${API_URL}/auth/refresh`;
+        const REFRESH_URL = `/api/auth/refresh`;
         const response = await axios.post(
           REFRESH_URL,
           {},

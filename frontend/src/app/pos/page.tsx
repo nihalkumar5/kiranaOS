@@ -177,25 +177,36 @@ export default function PosPage() {
     return () => clearTimeout(focusTimer);
   }, []);
 
-  // WebSockets real-time sync for online orders
+  // Optional WebSockets real-time sync for online orders
   useEffect(() => {
     if (!store?.id || !user) return;
+    if (typeof window === 'undefined') return;
 
-    const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-    const socket = io(SOCKET_URL, {
-      query: { storeId: store.id },
-    });
+    try {
+      const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || '';
+      if (!SOCKET_URL) return;
 
-    socket.on('new-online-order', (onlineOrder: OnlineOrder) => {
-      playSuccessSound();
-      showToast(`New Online Order from ${onlineOrder.customer.name}!`, 'success');
-      setOnlineOrders((prev) => [onlineOrder, ...prev]);
-    });
+      const socket = io(SOCKET_URL, {
+        query: { storeId: store.id },
+        transports: ['websocket', 'polling'],
+        autoConnect: false,
+      });
 
-    return () => {
-      socket.disconnect();
-    };
-  }, [store]);
+      socket.connect();
+
+      socket.on('new-online-order', (onlineOrder: OnlineOrder) => {
+        playSuccessSound();
+        showToast(`New Online Order from ${onlineOrder.customer.name}!`, 'success');
+        setOnlineOrders((prev) => [onlineOrder, ...prev]);
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    } catch (e) {
+      console.warn('Socket connection skipped in serverless mode');
+    }
+  }, [store, user]);
 
   // Autofocus handler on window blur/click
   const handleGlobalClick = (e: MouseEvent) => {
