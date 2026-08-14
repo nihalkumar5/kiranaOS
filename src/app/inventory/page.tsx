@@ -424,6 +424,64 @@ export default function InventoryPage() {
               <Plus className="w-4 h-4" /> Naya Item Add Karein
             </button>
 
+            <label
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, background: '#2563eb', color: '#fff',
+                fontSize: 13, fontWeight: 700, padding: '10px 18px', border: 'none', borderRadius: 10,
+                cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.25)'
+              }}
+            >
+              <Boxes className="w-4 h-4" /> Import Excel
+              <input
+                type="file"
+                accept=".xlsx, .xls, .csv"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setLoading(true);
+                  try {
+                    const XLSX = await import('xlsx');
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                      try {
+                        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+                        // Map standard fields, handle different column names from "Export Items.xlsx"
+                        const mapped = json.map(row => ({
+                          name: row['Item name*'] || row['Item Name'] || row.name || row.Name || '',
+                          price: parseFloat(row['Sales Price*'] || row['Selling Price'] || row.price || row.Price || 0),
+                          stock: parseFloat(row['Opening Quantity'] || row.stock || row.Stock || 0),
+                          barcode: row['Item Code'] || row.barcode || row.Barcode || '',
+                        })).filter(item => item.name);
+
+                        const res = await api.post('/products/import', { products: mapped });
+                        if (res.data?.success) {
+                          showToast(`✅ ${res.data.imported} products imported!`, 'success');
+                          fetchInventoryData();
+                        } else {
+                          showToast('Import failed', 'error');
+                        }
+                      } catch (err: any) {
+                        showToast('Error parsing file: ' + err.message, 'error');
+                      } finally {
+                        setLoading(false);
+                      }
+                    };
+                    reader.readAsArrayBuffer(file);
+                  } catch (err) {
+                    showToast('Failed to load excel parser', 'error');
+                    setLoading(false);
+                  }
+                  e.target.value = ''; // Reset input
+                }}
+              />
+            </label>
+
             <button
               onClick={() => { clearRestockForm(); setShowPurchaseModal(true); }}
               style={{
