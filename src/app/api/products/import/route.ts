@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthUser, unauthorizedResponse } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await verifyAuth(req);
+    const auth = getAuthUser(req);
     if (!auth) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+      return unauthorizedResponse();
     }
 
     const { storeId } = auth;
@@ -50,14 +50,14 @@ export async function POST(req: NextRequest) {
         await prisma.product.create({
           data: {
             name,
-            price,
+            sellingPrice: price,
+            purchasePrice: price,
             stock,
             barcode: barcode || undefined,
             storeId,
             categoryId: defaultCategory.id,
             unit: 'pcs',
-            minStock: 5,
-            gstRate: 0,
+            gst: 0,
           },
         });
         importedCount++;
