@@ -151,6 +151,7 @@ export default function PosPage() {
   const [quickAddBarcode, setQuickAddBarcode] = useState('');
   const [quickAddName, setQuickAddName] = useState('');
   const [quickAddPrice, setQuickAddPrice] = useState('');
+  const [quickAddBuyPrice, setQuickAddBuyPrice] = useState('');
   const [isQuickAdding, setIsQuickAdding] = useState(false);
 
   // Bill Mode State
@@ -464,7 +465,7 @@ export default function PosPage() {
         name: quickAddName,
         barcode: quickAddBarcode || null,
         sellingPrice: quickAddPrice,
-        purchasePrice: quickAddPrice, // Default to selling price
+        purchasePrice: quickAddBuyPrice || quickAddPrice,
         stock: '100', // Default stock
         unit: 'pc',
         gst: '0',
@@ -478,6 +479,7 @@ export default function PosPage() {
       setShowQuickAddModal(false);
       setQuickAddName('');
       setQuickAddPrice('');
+      setQuickAddBuyPrice('');
       setQuickAddBarcode('');
       
       // Refresh products
@@ -1612,10 +1614,14 @@ export default function PosPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1.5">Barcode</label>
-                <div className="bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] font-mono text-gray-700 font-medium">
-                  {quickAddBarcode}
-                </div>
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-500 mb-1.5">Barcode (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Scan or enter barcode"
+                  value={quickAddBarcode}
+                  onChange={(e) => setQuickAddBarcode(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#059669] rounded-xl px-3 py-3 text-sm font-mono text-gray-900 font-bold outline-none transition-colors"
+                />
               </div>
 
               <div>
@@ -1630,18 +1636,30 @@ export default function PosPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">Selling Price (₹) <span className="text-red-500">*</span></label>
-                <input
-                  type="number"
-                  placeholder="e.g. 20"
-                  value={quickAddPrice}
-                  onChange={(e) => setQuickAddPrice(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleQuickAddProduct();
-                  }}
-                  className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#059669] rounded-xl px-3 py-3 text-sm text-gray-900 font-bold outline-none transition-colors"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">Sell Price (₹) <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 20"
+                    value={quickAddPrice}
+                    onChange={(e) => setQuickAddPrice(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#059669] rounded-xl px-3 py-3 text-sm text-gray-900 font-bold outline-none transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] uppercase tracking-wider font-bold text-gray-700 mb-1.5">Buy Price (₹) <span className="text-gray-400 font-normal">Opt</span></label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 15"
+                    value={quickAddBuyPrice}
+                    onChange={(e) => setQuickAddBuyPrice(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleQuickAddProduct();
+                    }}
+                    className="w-full bg-gray-50 border border-gray-200 focus:bg-white focus:border-[#059669] rounded-xl px-3 py-3 text-sm text-gray-900 font-bold outline-none transition-colors"
+                  />
+                </div>
               </div>
 
               <button
