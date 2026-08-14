@@ -825,9 +825,10 @@ export default function PosPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+                {/* Banners Row (Horizontal Scroll on Mobile, Grid on Desktop) */}
+                <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 md:grid md:grid-cols-3 md:gap-5 md:overflow-visible pb-2 md:pb-0 -mx-6 px-6 md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                   {/* Kirana Grocery Banner */}
-                  <div className="relative w-full h-36 rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 bg-[#059669]">
+                  <div className="flex-shrink-0 w-[85vw] sm:w-[320px] md:w-auto snap-start relative h-36 rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 bg-[#059669]">
                     <div className="absolute inset-0 flex items-center justify-end pr-2">
                       <img src="https://images.unsplash.com/photo-1596422846543-75c6fc197f0a?w=400&h=400&fit=crop" className="h-[120%] w-auto object-cover absolute mix-blend-luminosity right-[-10px] opacity-60" />
                     </div>
@@ -840,7 +841,7 @@ export default function PosPage() {
                     </div>
                   </div>
                   {/* Fresh Dairy & Eggs Banner */}
-                  <div className="relative w-full h-36 rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 bg-[#f8b133]">
+                  <div className="flex-shrink-0 w-[85vw] sm:w-[320px] md:w-auto snap-start relative h-36 rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 bg-[#f8b133]">
                     <div className="absolute inset-0 flex items-center justify-end pr-2">
                       <img src="https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=400&h=400&fit=crop" className="h-[120%] w-auto object-cover absolute mix-blend-multiply right-[-10px]" />
                     </div>
@@ -853,7 +854,7 @@ export default function PosPage() {
                     </div>
                   </div>
                   {/* Snacks & Namkeen Banner */}
-                  <div className="relative w-full h-36 rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 bg-[#e32c2b]">
+                  <div className="flex-shrink-0 w-[85vw] sm:w-[320px] md:w-auto snap-start relative h-36 rounded-[20px] overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border border-gray-100 bg-[#e3342f]">
                     <div className="absolute inset-0 flex items-center justify-end">
                       <img src="https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=400&h=400&fit=crop" className="h-[140%] w-auto object-cover right-[-20px] absolute mix-blend-multiply opacity-80" />
                     </div>
