@@ -1,10 +1,10 @@
-// KiranaOS Unified Prisma Schema (MySQL)
+// KiranaOS Unified Prisma Schema (PostgreSQL)
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -110,14 +110,14 @@ model Product {
   id            String   @id @default(uuid())
   barcode       String?
   name          String
-  image         String?  @db.LongText // Supports URLs or Base64 uploaded images directly in SQL
+  image         String?  @db.Text // Supports URLs or Base64 uploaded images
   categoryId    String?
   purchasePrice Decimal  @db.Decimal(10, 2)
   sellingPrice  Decimal  @db.Decimal(10, 2)
-  stock         Decimal  @db.Decimal(10, 3) // Fractional stock like 1.500 kg
+  stock         Decimal  @db.Decimal(10, 3)
   unit          String   // kg, pcs, packet, l, etc.
   brand         String?
-  gst           Decimal  @db.Decimal(5, 2)  @default(0.00) // GST Percentage
+  gst           Decimal  @db.Decimal(5, 2)  @default(0.00)
   storeId       String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
