@@ -30,3 +30,9 @@ body {
   color: #94a3b8 !important;
   opacity: 1 !important;
 }
+
+/* Ensure all input values are clearly visible and dark */
+input, select, textarea {
+  color: #0f172a !important;
+  font-weight: 600;
+}

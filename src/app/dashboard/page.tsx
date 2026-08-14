@@ -28,6 +28,7 @@ import {
   Globe,
 } from 'lucide-react';
 import Logo from '@/components/Logo';
+import Sidebar from '@/components/Sidebar';
 
 interface BestSeller {
   name: string;
@@ -200,35 +201,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <aside style={{
-        width: 240, background: '#fff', borderRight: '1px solid #e5e7eb',
-        display: 'flex', flexDirection: 'column', padding: '28px 16px',
-        gap: 8, flexShrink: 0,
-      }}>
-        <div style={{ marginBottom: 32, paddingLeft: 8 }}>
-          <Logo size="md" />
-        </div>
-
-        {[
-          { icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard', active: true, onClick: () => {} },
-          { icon: <Zap className="w-4 h-4" />, label: 'POS Terminal', active: false, onClick: () => router.push('/pos') },
-          { icon: <Package className="w-4 h-4" />, label: 'Inventory', active: false, onClick: () => router.push('/inventory') },
-          { icon: <BarChart2 className="w-4 h-4" />, label: 'Reports', active: false, onClick: () => router.push('/reports') },
-          { icon: <Globe className="w-4 h-4" />, label: 'Storefront', active: false, onClick: () => router.push('/storefront-builder') },
-        ].map(item => (
-          <button key={item.label} onClick={item.onClick} style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 12px', background: item.active ? '#f3f4f6' : 'transparent', 
-            color: item.active ? '#111827' : '#6b7280',
-            fontWeight: item.active ? 700 : 500, fontSize: 13,
-            border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left',
-            transition: 'all 0.15s',
-          }}>
-            {item.icon} {item.label}
-          </button>
-        ))}
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
