@@ -731,6 +731,16 @@ export default function PosPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => {
+              setQuickAddBarcode('');
+              setShowQuickAddModal(true);
+            }}
+            className="flex items-center gap-2 bg-[#059669] hover:bg-green-700 border border-transparent px-4 py-2.5 rounded-full text-sm font-bold text-white transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden lg:inline">Quick Add</span>
+          </button>
+          <button
+            onClick={() => {
               fetchOnlineOrders();
               setShowOnlineDrawer(true);
             }}
@@ -975,9 +985,20 @@ export default function PosPage() {
               <h2 className="text-lg font-black text-white">Cart</h2>
               <p className="text-[11px] text-slate-400 font-medium">KiranaOS POS Mode • Scan to add</p>
             </div>
-            <button onClick={clearCart} className="text-xs font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
-              <Trash2 className="w-3.5 h-3.5" /> Clear
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setQuickAddBarcode('');
+                  setShowQuickAddModal(true);
+                }}
+                className="text-xs font-bold text-green-400 hover:text-green-300 bg-green-500/10 hover:bg-green-500/20 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add
+              </button>
+              <button onClick={clearCart} className="text-xs font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors">
+                <Trash2 className="w-3.5 h-3.5" /> Clear
+              </button>
+            </div>
           </div>
 
           {/* Cart Items Area */}
