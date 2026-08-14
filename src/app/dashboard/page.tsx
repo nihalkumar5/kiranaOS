@@ -89,7 +89,7 @@ export default function DashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/dashboard/stats');
+      const response = await api.get('/dashboard');
       setStats(response.data.data);
     } catch (e) {
       console.error('Failed to load stats', e);
