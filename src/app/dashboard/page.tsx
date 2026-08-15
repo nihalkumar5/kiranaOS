@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { playSuccessSound } from '@/lib/sounds';
 import { io } from 'socket.io-client';
+import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   DollarSign,
@@ -178,261 +179,239 @@ export default function DashboardPage() {
   ] : [];
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
-
+    <div className="flex min-h-screen bg-gray-50 font-sans">
       {/* Real-time Order Notification */}
       {orderAlert && (
-        <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 50,
-          background: '#fff', padding: '16px 20px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-          border: '1px solid #e5e7eb', borderRadius: 16,
-          display: 'flex', alignItems: 'flex-start', gap: 12,
-          maxWidth: 340, animation: 'slideUp 0.3s ease',
-        }}>
-          <div style={{ background: '#000', padding: 8, color: '#fff' }}>
-            <Bell className="w-4 h-4" />
+        <motion.div 
+          initial={{ opacity: 0, y: 50, scale: 0.9 }} 
+          animate={{ opacity: 1, y: 0, scale: 1 }} 
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="fixed bottom-6 right-6 z-50 bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 flex items-start gap-4 max-w-sm"
+        >
+          <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 rounded-xl text-white shadow-lg shadow-emerald-200">
+            <Zap className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <p style={{ fontWeight: 800, fontSize: 13, color: '#111827', margin: 0 }}>NEW ORDER — {orderAlert.paymentMode}</p>
-            <p style={{ fontSize: 12, color: '#666', margin: '2px 0' }}>Bill #{orderAlert.billNumber} by {orderAlert.cashier}</p>
-            <p style={{ fontSize: 15, fontWeight: 900, color: '#111827', margin: 0 }}>₹{orderAlert.totalAmount}</p>
+            <p className="font-extrabold text-[13px] text-gray-900 m-0 tracking-wide">NEW ORDER — {orderAlert.paymentMode}</p>
+            <p className="text-[12px] text-gray-500 my-1 font-medium">Bill #{orderAlert.billNumber} by {orderAlert.cashier}</p>
+            <p className="text-[16px] font-black text-emerald-600 m-0">₹{orderAlert.totalAmount}</p>
           </div>
-        </div>
+        </motion.div>
       )}
 
       <Sidebar />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-0">
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-0 relative">
+        
+        {/* Dynamic Dark Hero Background */}
+        <div className="absolute top-0 left-0 w-full h-[320px] bg-gradient-to-b from-gray-900 via-gray-900 to-gray-50 z-0 overflow-hidden">
+          <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse"></div>
+          <div className="absolute top-[100px] left-[-50px] w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20"></div>
+        </div>
 
         {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 p-4 md:p-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <p className="text-[13px] text-gray-600 font-medium m-0">Welcome back 👋</p>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 m-0 leading-tight">{store?.name || 'Dashboard'}</h1>
-          </div>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
+        <div className="relative z-10 px-4 md:px-8 pt-8 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+            <p className="text-[14px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Welcome back 👋</p>
+            <h1 className="text-3xl md:text-4xl font-black text-white m-0 tracking-tight">{store?.name || 'Dashboard'}</h1>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="flex flex-wrap gap-3">
             <button
               onClick={() => router.push('/pos')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: '#111827', color: '#ffffff', borderRadius: 10, fontWeight: 700, fontSize: 13,
-                padding: '10px 18px', border: 'none', cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s',
-              }}
+              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl font-bold text-[14px] px-5 py-2.5 shadow-lg shadow-emerald-500/30 transition-all active:scale-95"
             >
-              <Zap className="w-4 h-4" /> Open POS
+              <Zap className="w-4 h-4 fill-current" /> Open POS
             </button>
             <button
               onClick={() => router.push('/inventory')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                background: '#ffffff', color: '#111827', borderRadius: 10, fontWeight: 700, fontSize: 13,
-                padding: '10px 18px', border: '1px solid #cbd5e1', cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s',
-              }}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-xl font-bold text-[14px] px-5 py-2.5 border border-white/20 transition-all active:scale-95"
             >
               <Boxes className="w-4 h-4" /> Inventory
             </button>
-          </div>
+          </motion.div>
         </div>
 
         {/* Content Area */}
-        <div className="p-4 md:p-6 lg:px-8 flex flex-col gap-6">
-
+        <div className="relative z-10 p-4 md:px-8 flex flex-col gap-8">
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
-              <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin" />
+            <div className="flex justify-center items-center h-[300px]">
+              <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin shadow-lg" />
             </div>
           ) : stats ? (
             <>
               {/* Stat Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 {statCards.map((card, i) => (
-                  <div key={i} style={{
-                    background: '#fff', padding: '24px',
-                    border: '1px solid #e2e8f0', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                    position: 'relative', display: 'flex', flexDirection: 'column', gap: 12,
-                  }}>
-                    <div style={{
-                      width: 44, height: 44, border: '1px solid #e5e7eb', borderRadius: 16,
-                      background: '#f9fafb', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center',
-                      color: '#111827',
-                    }}>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ duration: 0.4, delay: i * 0.1 }}
+                    key={i} 
+                    className="bg-white/80 backdrop-blur-xl p-5 md:p-6 border border-white/40 rounded-2xl shadow-xl shadow-gray-200/50 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 transition-transform"
+                  >
+                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+                    <div className="w-12 h-12 rounded-xl bg-gray-900 text-white flex items-center justify-center shadow-lg shadow-gray-900/20 relative z-10">
                       {card.icon}
                     </div>
-                    <div>
-                      <p style={{ fontSize: 11, fontWeight: 800, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>{card.label}</p>
-                      <p style={{ fontSize: 28, fontWeight: 900, color: '#111827', margin: 0 }}>{card.value}</p>
+                    <div className="relative z-10">
+                      <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-1">{card.label}</p>
+                      <p className="text-2xl md:text-3xl font-black text-gray-900 m-0 tracking-tight">{card.value}</p>
                     </div>
-                    <div style={{ marginTop: 'auto', borderTop: '1px solid #eaeaea', paddingTop: 12 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: '#111827', margin: 0 }}>{card.sub}</p>
+                    <div className="mt-auto pt-4 border-t border-gray-100 relative z-10">
+                      <p className="text-[12px] font-bold text-emerald-600 m-0">{card.sub}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
 
               {/* Charts Row */}
-              <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
-
+              <div className="flex flex-col lg:flex-row gap-6">
                 {/* Category Sales */}
-                <div className="flex-1 lg:w-2/3 bg-white p-5 md:p-6 border border-slate-200 rounded-2xl shadow-sm">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <TrendingUp className="w-4 h-4" style={{ color: '#111827' }} />
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex-1 lg:w-2/3 bg-white p-6 border border-gray-100 rounded-3xl shadow-xl shadow-gray-200/40">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><TrendingUp className="w-5 h-5" /></div>
                       Category Sales
                     </h3>
-                    <span style={{ fontSize: 11, color: '#666', fontWeight: 600 }}>Today (INR)</span>
+                    <span className="text-[12px] text-gray-500 font-bold bg-gray-50 px-3 py-1 rounded-full">Today (INR)</span>
                   </div>
 
                   {stats.categorySales.length === 0 ? (
-                    <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: 13 }}>
-                      No sales recorded yet.
-                    </div>
+                    <div className="h-32 flex items-center justify-center text-gray-400 text-sm font-medium">No sales recorded yet.</div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div className="flex flex-col gap-5">
                       {stats.categorySales.map((cat, i) => {
-                        const colors = ['#000', '#333', '#666', '#999', '#ccc'];
+                        const gradients = [
+                          'from-blue-500 to-cyan-400',
+                          'from-emerald-500 to-teal-400',
+                          'from-purple-500 to-pink-400',
+                          'from-orange-500 to-yellow-400',
+                          'from-indigo-500 to-blue-400'
+                        ];
                         const pct = (cat.value / maxCategorySales) * 100;
                         return (
-                          <div key={cat.name}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>{cat.name}</span>
-                              <span style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>₹{cat.value.toFixed(0)}</span>
+                          <div key={cat.name} className="group">
+                            <div className="flex justify-between items-end mb-2">
+                              <span className="text-[13px] font-bold text-gray-700">{cat.name}</span>
+                              <span className="text-[14px] font-black text-gray-900">₹{cat.value.toFixed(0)}</span>
                             </div>
-                            <div style={{ height: 8, background: '#fff', border: '1px solid #000' }}>
-                              <div style={{
-                                height: '100%', width: `${pct}%`,
-                                background: colors[i % colors.length],
-                                transition: 'width 0.8s ease',
-                              }} />
+                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }} 
+                                animate={{ width: `${pct}%` }} 
+                                transition={{ duration: 1, delay: 0.5 + (i * 0.1) }}
+                                className={`h-full bg-gradient-to-r ${gradients[i % gradients.length]} rounded-full shadow-sm`} 
+                              />
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Best Sellers */}
-                <div className="w-full lg:w-1/3 bg-white p-5 md:p-6 border border-slate-200 rounded-2xl shadow-sm">
-                  <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <ShoppingBag className="w-4 h-4" style={{ color: '#111827' }} />
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="w-full lg:w-1/3 bg-white p-6 border border-gray-100 rounded-3xl shadow-xl shadow-gray-200/40">
+                  <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
+                    <div className="p-2 bg-orange-50 text-orange-600 rounded-lg"><Zap className="w-5 h-5" /></div>
                     Top Sellers
                   </h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div className="flex flex-col gap-3">
                     {stats.bestSellers.length === 0 ? (
-                      <p style={{ fontSize: 12, color: '#666', textAlign: 'center', padding: '24px 0' }}>No data yet.</p>
-                    ) : stats.bestSellers.map((item, i) => {
-                      const rankColors = ['#000', '#000', '#000', '#000', '#000'];
-                      return (
-                        <div key={i} style={{
-                          display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
-                        }}>
-                          <div style={{
-                            width: 28, height: 28, background: '#000',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            color: '#fff', fontSize: 12, fontWeight: 800, flexShrink: 0,
-                          }}>
-                            {i + 1}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 12, fontWeight: 700, color: '#111827', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</p>
-                            <p style={{ fontSize: 10, color: '#666', margin: 0 }}>MRP ₹{Number(item.price).toFixed(0)}</p>
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: rankColors[i], flexShrink: 0 }}>
-                            {item.quantitySold} {item.unit}
-                          </span>
+                      <p className="text-sm text-gray-400 text-center py-8 font-medium">No data yet.</p>
+                    ) : stats.bestSellers.map((item, i) => (
+                      <div key={i} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-2xl transition-colors border border-transparent hover:border-gray-100 group">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm ${i === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-white' : i === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' : i === 2 ? 'bg-gradient-to-br from-amber-700 to-yellow-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                          #{i + 1}
                         </div>
-                      );
-                    })}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold text-gray-900 truncate">{item.name}</p>
+                          <p className="text-[11px] font-semibold text-gray-500">MRP ₹{Number(item.price).toFixed(0)}</p>
+                        </div>
+                        <div className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-[11px] font-black flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                          {item.quantitySold} {item.unit}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                </motion.div>
               </div>
 
               {/* Bottom Row */}
-              <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
-
+              <div className="flex flex-col lg:flex-row gap-6">
                 {/* Low Stock Alerts */}
-                <div className="flex-1 lg:w-2/3 bg-white p-5 md:p-6 border border-slate-200 rounded-2xl shadow-sm">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <AlertTriangle className="w-4 h-4" style={{ color: '#111827' }} />
-                      Low Stock Alerts
-                      <span style={{ background: '#111827', color: '#ffffff',  fontSize: 11, fontWeight: 700, padding: '2px 8px' }}>
-                        {stats.lowStock.count} items
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="flex-1 lg:w-2/3 bg-white p-6 border border-gray-100 rounded-3xl shadow-xl shadow-gray-200/40">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                      <div className="p-2 bg-red-50 text-red-600 rounded-lg"><AlertTriangle className="w-5 h-5" /></div>
+                      Critical Stock
+                      <span className="bg-red-500 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-sm shadow-red-200 animate-pulse">
+                        {stats.lowStock.count} Alerts
                       </span>
                     </h3>
                     <button
                       onClick={() => router.push('/inventory')}
-                      style={{ fontSize: 12, color: '#111827', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      className="text-[12px] text-gray-600 font-bold hover:text-gray-900 flex items-center gap-1 transition-colors"
                     >
-                      Open Manager <ArrowUpRight className="w-3 h-3" />
+                      Inventory <ArrowUpRight className="w-3 h-3" />
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {stats.lowStock.items.length === 0 ? (
-                      <div style={{ gridColumn: '1/-1', padding: '20px 0', textAlign: 'center', color: '#10b981', fontSize: 13, fontWeight: 600 }}>
+                      <div className="col-span-full py-8 text-center text-emerald-500 font-bold bg-emerald-50 rounded-2xl border border-emerald-100">
                         ✨ All stock levels are healthy!
                       </div>
                     ) : stats.lowStock.items.map((item) => (
-                      <div key={item.id} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '4px solid #3b82f6', borderRadius: '10px',
-                      }}>
+                      <div key={item.id} className="flex justify-between items-center p-4 bg-white border border-red-100 rounded-2xl shadow-sm hover:shadow-md hover:border-red-200 transition-all group">
                         <div>
-                          <p style={{ fontSize: 12, fontWeight: 700, color: '#111827', margin: 0 }}>{item.name}</p>
-                          <p style={{ fontSize: 10, color: '#666', margin: 0 }}>Below threshold</p>
+                          <p className="text-[13px] font-bold text-gray-900 mb-0.5">{item.name}</p>
+                          <p className="text-[11px] font-semibold text-red-500">Action Required</p>
                         </div>
-                        <span style={{ fontWeight: 800, color: '#fff', background: '#000', padding: '4px 10px', fontSize: 11 }}>
+                        <span className="font-black text-white bg-gradient-to-r from-red-500 to-rose-500 px-3 py-1.5 text-[12px] rounded-lg shadow-sm group-hover:scale-105 transition-transform">
                           {Number(item.stock).toFixed(1)} {item.unit}
                         </span>
                       </div>
                     ))}
                   </div>
-                </div>
+                </motion.div>
 
                 {/* QR Code */}
-                <div className="w-full lg:w-1/3 bg-gray-900 p-5 md:p-6 text-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center gap-4">
-                  <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <QrCode className="w-4 h-4" /> Online Store QR
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="w-full lg:w-1/3 bg-gradient-to-br from-gray-900 to-black p-6 text-white border border-gray-800 rounded-3xl shadow-2xl shadow-black/40 flex flex-col items-center gap-6 relative overflow-hidden">
+                  <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500 rounded-full mix-blend-screen filter blur-[80px] opacity-30"></div>
+                  
+                  <h3 className="text-lg font-black m-0 flex items-center gap-2 relative z-10 w-full justify-center">
+                    <Zap className="w-5 h-5 text-emerald-400" /> Online Catalog
                   </h3>
-                  <div style={{ background: '#fff', padding: 10, border: '2px solid #fff' }}>
+                  
+                  <div className="bg-white p-3 rounded-2xl shadow-xl shadow-emerald-900/20 relative z-10">
                     <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(`http://localhost:3001/store/${store?.id}`)}`}
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`http://localhost:3001/store/${store?.id}`)}`}
                       alt="Store QR"
-                      width={130} height={130}
-                      style={{ display: 'block', borderRadius: 0 }}
+                      width={140} height={140}
+                      className="block rounded-lg"
                     />
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ fontSize: 12, margin: '0 0 4px', fontWeight: 600, opacity: 0.9 }}>Scan to browse & order</p>
-                    <p style={{ fontSize: 11, margin: 0, opacity: 0.7 }}>Customers can order from their phone</p>
+                  
+                  <div className="text-center relative z-10">
+                    <p className="text-[13px] font-bold text-gray-200 mb-1">Scan to order from mobile</p>
+                    <p className="text-[11px] font-medium text-gray-400">Share this with your customers</p>
                   </div>
+                  
                   <a
                     href={`/store/${store?.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    style={{
-                      background: 'rgba(255,255,255,0.2)', color: '#fff',
-                      fontWeight: 700, fontSize: 12, padding: '10px 20px',
-                      borderRadius: 12, textDecoration: 'none', width: '100%',
-                      textAlign: 'center', display: 'flex', alignItems: 'center',
-                      justifyContent: 'center', gap: 6, border: '1px solid rgba(255,255,255,0.3)',
-                      backdropFilter: 'blur(4px)',
-                    }}
+                    className="relative z-10 w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-[13px] py-3 rounded-xl flex items-center justify-center gap-2 backdrop-blur-md transition-all active:scale-95"
                   >
-                    View Catalog <ArrowUpRight className="w-3 h-3" />
+                    Open Storefront <ArrowUpRight className="w-4 h-4" />
                   </a>
-                </div>
+                </motion.div>
               </div>
             </>
           ) : (
-            <div style={{ textAlign: 'center', color: '#666', padding: '60px 0' }}>Failed to load dashboard metrics.</div>
+            <div className="text-center text-gray-500 py-16 font-semibold">Failed to load dashboard metrics.</div>
           )}
         </div>
       </div>
