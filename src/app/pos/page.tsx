@@ -555,12 +555,27 @@ export default function PosPage() {
 
       const orderPayload = {
         customerId: finalCustomerId,
+        customerName,
+        customerMobile,
         discount,
         paymentMode,
-        items: cartItemsList.map((item) => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-        })),
+        subtotal: cartTotals.subtotal,
+        gstAmount: cartTotals.totalTax,
+        totalAmount: cartTotals.finalTotal,
+        items: cartItemsList.map((item) => {
+          const price = Number(item.product.sellingPrice);
+          const gstRate = Number(item.product.gst || 0);
+          const basePrice = price / (1 + gstRate / 100);
+          const itemGst = (price - basePrice) * item.quantity;
+          
+          return {
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: price,
+            gstRate: gstRate,
+            gstAmount: itemGst
+          };
+        }),
       };
 
       const res = await api.post('/orders', orderPayload);
