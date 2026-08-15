@@ -7,48 +7,22 @@ import { api } from '@/lib/api';
 import Logo from '@/components/Logo';
 import Sidebar from '@/components/Sidebar';
 import {
-  Calendar,
-  Download,
-  DollarSign,
-  FileText,
-  AlertTriangle,
-  Scale,
-  Plus,
-  History,
-  TrendingUp,
-  Activity,
-  Award,
-  Clock,
-  CheckCircle,
-  LayoutDashboard,
-  Zap,
-  Package,
-  BarChart2,
-  Coins,
-  Search,
-  Check,
-  X,
-  Globe
+  Calendar, Download, DollarSign, FileText, AlertTriangle, Scale, Plus, History,
+  TrendingUp, TrendingDown, Activity, Award, Clock, CheckCircle, LayoutDashboard,
+  Zap, Package, BarChart2, Coins, Search, Check, X, Globe, ShoppingBag, ArrowUpRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-interface PaymentSplit {
-  mode: string;
-  value: number;
-}
-
-interface TimelinePoint {
-  date: string;
-  sales: number;
-  bills: number;
-}
-
-interface SalesAggregate {
-  totalSales: number;
-  totalTax: number;
-  totalDiscount: number;
+interface AnalyticsData {
+  timeframe: string;
+  currentRevenue: number;
+  prevRevenue: number;
+  trendPercent: number;
   billsCount: number;
-  paymentSplit: PaymentSplit[];
-  salesTimeline: TimelinePoint[];
+  topSellers: any[];
+  categoryBreakdown: any[];
+  slowMovers: any[];
+  restockNeeded: any[];
 }
 
 interface CashTally {
@@ -68,18 +42,12 @@ export default function ReportsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  // Date range states (Default: last 30 days)
-  const [startDate, setStartDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 14); // 14 days by default
-    return d.toISOString().split('T')[0];
-  });
-  const [endDate, setEndDate] = useState(() => {
-    return new Date().toISOString().split('T')[0];
-  });
-
-  const [aggregate, setAggregate] = useState<SalesAggregate | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'inventory' | 'cash'>('overview');
+  const [timeframe, setTimeframe] = useState<'today' | 'last7days' | 'thisMonth'>('last7days');
+  
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [tallies, setTallies] = useState<CashTally[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -107,23 +75,23 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (user && user.role === 'ADMIN') {
-      fetchReportsData();
+      fetchAnalyticsData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, startDate, endDate]);
+  }, [user, timeframe]);
 
-  async function fetchReportsData() {
+  async function fetchAnalyticsData() {
     setLoading(true);
     try {
-      const [aggRes, tallRes] = await Promise.all([
-        api.get(`/reports/sales-aggregate?startDate=${startDate}&endDate=${endDate}`),
+      const [analyticsRes, tallRes] = await Promise.all([
+        api.get(`/reports/analytics?timeframe=${timeframe}`),
         api.get('/reports/cash-tally')
       ]);
 
-      setAggregate(aggRes.data.data);
+      setAnalytics(analyticsRes.data.data);
       setTallies(tallRes.data.data);
     } catch (err) {
-      console.error('Failed to load reports data', err);
+      console.error('Failed to load analytics data', err);
       showToast('Data load nahi ho paya, try again', 'error');
     } finally {
       setLoading(false);
@@ -132,6 +100,14 @@ export default function ReportsPage() {
 
   const handleExportCSV = async () => {
     try {
+      let sd = new Date();
+      if(timeframe === 'today') sd.setDate(sd.getDate());
+      else if(timeframe === 'last7days') sd.setDate(sd.getDate() - 7);
+      else sd.setDate(1);
+
+      const startDate = sd.toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split('T')[0];
+
       const res = await api.get(`/reports/export?startDate=${startDate}&endDate=${endDate}`, {
         responseType: 'blob'
       });
@@ -161,7 +137,7 @@ export default function ReportsPage() {
       setShowTallyModal(false);
       setActualAmount('');
       setNotes('');
-      fetchReportsData();
+      fetchAnalyticsData();
     } catch (err) {
       const error = err as any;
       showToast(error.response?.data?.message || 'Galti hui, try again', 'error');
@@ -169,55 +145,6 @@ export default function ReportsPage() {
       setSubmittingTally(false);
     }
   };
-
-  // Simple Graph points generator
-  const graphData = useMemo(() => {
-    if (!aggregate || !aggregate.salesTimeline || aggregate.salesTimeline.length === 0) return null;
-    const pts = aggregate.salesTimeline;
-    
-    let maxVal = 0;
-    pts.forEach(p => { if (p.sales > maxVal) maxVal = p.sales; });
-    
-    // Scale maxVal to the nearest 100 or something nice
-    maxVal = maxVal === 0 ? 10 : Math.ceil(maxVal * 1.2); 
-    
-    const width = 1000;
-    const height = 250;
-    const paddingLeft = 60;
-    const paddingRight = 20;
-    const paddingTop = 20;
-    const paddingBottom = 40;
-    
-    const chartW = width - paddingLeft - paddingRight;
-    const chartH = height - paddingTop - paddingBottom;
-    
-    const stepX = pts.length > 1 ? chartW / (pts.length - 1) : chartW;
-    
-    const points = pts.map((p, i) => {
-      const x = paddingLeft + i * stepX;
-      const y = paddingTop + chartH - (p.sales / maxVal) * chartH;
-      return { x, y, val: p.sales, date: p.date };
-    });
-    
-    const linePath = points.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
-    
-    const areaPath = points.length > 0 
-      ? `${linePath} L ${points[points.length - 1].x} ${paddingTop + chartH} L ${points[0].x} ${paddingTop + chartH} Z`
-      : '';
-
-    return {
-      points,
-      linePath,
-      areaPath,
-      width,
-      height,
-      paddingLeft,
-      paddingRight,
-      paddingTop,
-      paddingBottom,
-      maxVal,
-    };
-  }, [aggregate]);
 
   if (authLoading || !user || user.role !== 'ADMIN') {
     return (
@@ -227,333 +154,427 @@ export default function ReportsPage() {
     );
   }
 
-  return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
-      
-      {/* Toast */}
-      {toast && (
-        <div
-          style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 50, padding: '16px 24px',
-            border: '1px solid #e5e7eb', borderRadius: 16, fontSize: 14, fontWeight: 800,
-            background: toast.type === 'success' ? '#fff' : '#000',
-            color: toast.type === 'success' ? '#000' : '#fff',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-            transition: 'all 0.3s'
-          }}
-        >
-          {toast.message}
-        </div>
-      )}
+  const tabs = [
+    { id: 'overview', label: 'Overview & Trends', icon: <TrendingUp className="w-4 h-4" /> },
+    { id: 'insights', label: 'Product Insights', icon: <Award className="w-4 h-4" /> },
+    { id: 'inventory', label: 'Inventory Health', icon: <Package className="w-4 h-4" /> },
+    { id: 'cash', label: 'Cash Tally', icon: <Scale className="w-4 h-4" /> }
+  ] as const;
 
-      {/* Sidebar */}
+  return (
+    <div className="flex min-h-screen bg-[#f8fafc] font-sans">
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className={`fixed bottom-6 right-6 z-50 px-6 py-4 rounded-2xl font-bold shadow-xl flex items-center gap-3 ${toast.type === 'success' ? 'bg-white text-gray-900 border border-gray-100' : 'bg-gray-900 text-white border border-gray-800'}`}
+          >
+            {toast.type === 'success' ? <CheckCircle className="w-5 h-5 text-green-500" /> : <AlertTriangle className="w-5 h-5 text-red-400" />}
+            {toast.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Sidebar />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-0">
-        
-        {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 p-4 md:p-6 lg:px-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <main className="flex-1 lg:pl-64 flex flex-col max-h-screen overflow-hidden">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-100 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20 shadow-sm">
           <div>
-            <p className="text-[13px] text-gray-600 font-semibold mb-1 uppercase tracking-wide">Analytics & Data</p>
-            <h1 className="text-2xl md:text-3xl font-black text-gray-900 m-0 leading-tight">Dukaan Ka Khata (Reports)</h1>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+              <BarChart2 className="w-6 h-6 text-[#059669]" />
+              Analytics & Insights
+            </h1>
+            <p className="text-sm font-semibold text-gray-500 mt-1 uppercase tracking-wider">Business Intelligence Dashboard</p>
           </div>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-center w-full lg:w-auto">
-            
-            {/* Dates */}
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 16, padding: '8px 12px', gap: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-              <Calendar className="w-4 h-4" style={{ color: '#111827' }} />
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 13, fontWeight: 700, color: '#111827', cursor: 'pointer' }}
-              />
-              <span style={{ fontWeight: 800, color: '#666', fontSize: 12 }}>se</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 13, fontWeight: 700, color: '#111827', cursor: 'pointer' }}
-              />
-            </div>
 
+          <div className="flex items-center gap-3">
+            <select
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value as any)}
+              className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-[#059669] focus:border-[#059669] block px-4 py-2.5 font-bold cursor-pointer transition-colors hover:bg-gray-100"
+            >
+              <option value="today">Today</option>
+              <option value="last7days">Last 7 Days</option>
+              <option value="thisMonth">This Month</option>
+            </select>
             <button
               onClick={handleExportCSV}
-              disabled={!aggregate || aggregate.billsCount === 0}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: '#ffffff', color: '#111827',  fontWeight: 800, fontSize: 13,
-                padding: '12px 16px', border: '1px solid #e5e7eb', borderRadius: 16, cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s',
-                opacity: (!aggregate || aggregate.billsCount === 0) ? 0.5 : 1
-              }}>
-              <Download className="w-4 h-4" /> Download Excel/CSV
+              className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
             </button>
+          </div>
+        </header>
 
-            <button
-              onClick={() => setShowTallyModal(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                background: '#111827', color: '#ffffff',  fontWeight: 800, fontSize: 13,
-                padding: '12px 20px', border: '1px solid #e5e7eb', borderRadius: 16, cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s',
-              }}>
-              <Plus className="w-4 h-4" /> Galla Milayein (Cash Tally)
-            </button>
+        {/* Tab Navigation */}
+        <div className="bg-white border-b border-gray-200 px-6 overflow-x-auto hide-scrollbar">
+          <div className="flex gap-6 min-w-max">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 py-4 px-2 text-sm font-bold border-b-2 transition-colors relative ${
+                  activeTab === tab.id 
+                    ? 'border-[#059669] text-[#059669]' 
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {loading ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: 40, height: 40, border: '1px solid #e5e7eb', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          </div>
-        ) : aggregate ? (
-          <div className="p-4 md:p-6 lg:px-10 flex flex-col gap-6 md:gap-8">
-            
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <div className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 flex items-center justify-between shadow-sm">
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 800, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>Total Bika (Sales)</p>
-                  <h3 style={{ fontSize: 26, fontWeight: 900, color: '#111827', margin: 0 }}>₹{aggregate.totalSales.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</h3>
-                </div>
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 16, padding: 12, color: '#111827' }}>
-                  <DollarSign className="w-6 h-6" />
-                </div>
-              </div>
-
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 800, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>Total Bill Bane</p>
-                  <h3 style={{ fontSize: 26, fontWeight: 900, color: '#111827', margin: 0 }}>{aggregate.billsCount} Bills</h3>
-                </div>
-                <div style={{ background: '#000', border: '1px solid #e5e7eb', borderRadius: 16, padding: 12, color: '#fff' }}>
-                  <FileText className="w-6 h-6" />
-                </div>
-              </div>
-
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 800, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>GST Jama Hua</p>
-                  <h3 style={{ fontSize: 26, fontWeight: 900, color: '#111827', margin: 0 }}>₹{aggregate.totalTax.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</h3>
-                </div>
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 16, padding: 12, color: '#111827' }}>
-                  <Scale className="w-6 h-6" />
-                </div>
-              </div>
-
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 800, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 6px' }}>Chhut (Discount) Diya</p>
-                  <h3 style={{ fontSize: 26, fontWeight: 900, color: '#111827', margin: 0 }}>₹{aggregate.totalDiscount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</h3>
-                </div>
-                <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 16, padding: 12, color: '#111827' }}>
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-              </div>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="w-10 h-10 border-4 border-gray-200 border-t-[#059669] rounded-full animate-spin"></div>
             </div>
-
-            <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
+          ) : !analytics ? (
+            <div className="flex flex-col items-center justify-center h-64 bg-white rounded-3xl border border-gray-100 shadow-sm">
+              <AlertTriangle className="w-12 h-12 text-yellow-400 mb-4" />
+              <h2 className="text-xl font-bold text-gray-900">Error Loading Data</h2>
+              <button onClick={fetchAnalyticsData} className="mt-4 text-[#059669] font-bold hover:underline">Try Again</button>
+            </div>
+          ) : (
+            <div className="max-w-6xl mx-auto space-y-6 pb-20">
               
-              {/* Sales Graph */}
-              <div className="flex-1 lg:w-2/3 bg-white border border-gray-200 rounded-2xl p-4 md:p-7 shadow-sm">
-                <h2 style={{ fontSize: 18, fontWeight: 900, color: '#111827', margin: '0 0 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Activity className="w-5 h-5" />
-                  Sales ka Graph
-                </h2>
-                
-                {graphData ? (
-                  <div style={{ position: 'relative', width: '100%', height: 250 }}>
-                    <svg width="100%" height="100%" viewBox={`0 0 ${graphData.width} ${graphData.height}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                      {/* Grid Lines */}
-                      {[0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-                        const y = graphData.paddingTop + graphData.height - graphData.paddingTop - graphData.paddingBottom - ratio * (graphData.height - graphData.paddingTop - graphData.paddingBottom);
-                        return (
-                          <g key={ratio}>
-                            <line x1={graphData.paddingLeft} y1={y} x2={graphData.width - graphData.paddingRight} y2={y} stroke="#e5e7eb" strokeDasharray="4 4" strokeWidth="2" />
-                            <text x={graphData.paddingLeft - 10} y={y + 4} fill="#666" fontSize="11" fontWeight="700" textAnchor="end">
-                              {Math.round(ratio * graphData.maxVal)}
-                            </text>
-                          </g>
-                        );
-                      })}
-                      
-                      {/* Area */}
-                      <path d={graphData.areaPath} fill="#f0f0f0" opacity={0.5} />
-                      {/* Line */}
-                      <path d={graphData.linePath} fill="none" stroke="#000" strokeWidth="4" />
-                      
-                      {/* Data Points */}
-                      {graphData.points.map((p, i) => (
-                        <g key={i}>
-                          <circle cx={p.x} cy={p.y} r="6" fill="#fff" stroke="#000" strokeWidth="3" />
-                          {/* Label on every point if space allows, or alternating */}
-                          <text x={p.x} y={graphData.height - 10} fill="#000" fontSize="11" fontWeight="800" textAnchor="middle">
-                            {p.date.split('-').slice(1).join('/')}
-                          </text>
-                        </g>
-                      ))}
-                    </svg>
-                  </div>
-                ) : (
-                  <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #ccc' }}>
-                    <p style={{ fontWeight: 600, color: '#666' }}>In dino ki koi sales nahi hai.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Payment Methods */}
-              <div className="w-full lg:w-1/3 bg-white border border-gray-200 rounded-2xl p-4 md:p-7 shadow-sm">
-                <h2 style={{ fontSize: 18, fontWeight: 900, color: '#111827', margin: '0 0 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Coins className="w-5 h-5" />
-                  Paisa Kaise Aaya
-                </h2>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  {aggregate.paymentSplit.map(split => {
-                    const percent = aggregate.totalSales > 0 ? (split.value / aggregate.totalSales) * 100 : 0;
-                    return (
-                      <div key={split.mode}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>{split.mode} Se</span>
-                          <span style={{ fontSize: 12, fontWeight: 800, color: '#111827' }}>
-                            ₹{split.value.toFixed(0)} <span style={{ color: '#666', fontWeight: 600, marginLeft: 4 }}>({percent.toFixed(1)}%)</span>
-                          </span>
+              {/* TAB: OVERVIEW */}
+              {activeTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* Revenue Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-10 -mt-10 opacity-50 blur-2xl"></div>
+                      <div className="flex justify-between items-start mb-4 relative z-10">
+                        <div className="bg-blue-100 p-3 rounded-2xl">
+                          <DollarSign className="w-6 h-6 text-blue-600" />
                         </div>
-                        <div style={{ width: '100%', height: 12, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 16, overflow: 'hidden' }}>
-                          <div style={{ width: `${percent}%`, height: '100%', background: '#000' }} />
+                        <span className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 ${analytics.trendPercent >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {analytics.trendPercent >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                          {Math.abs(analytics.trendPercent).toFixed(1)}%
+                        </span>
+                      </div>
+                      <p className="text-sm font-bold text-gray-500 uppercase tracking-wider relative z-10">Revenue</p>
+                      <h3 className="text-4xl font-black text-gray-900 mt-1 relative z-10">₹{analytics.currentRevenue.toFixed(2)}</h3>
+                      <p className="text-xs font-semibold text-gray-400 mt-2 relative z-10">vs ₹{analytics.prevRevenue.toFixed(2)} prev period</p>
+                    </div>
+
+                    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full -mr-10 -mt-10 opacity-50 blur-2xl"></div>
+                      <div className="flex justify-between items-start mb-4 relative z-10">
+                        <div className="bg-purple-100 p-3 rounded-2xl">
+                          <FileText className="w-6 h-6 text-purple-600" />
                         </div>
                       </div>
-                    );
-                  })}
-                  {aggregate.paymentSplit.length === 0 && (
-                    <p style={{ fontWeight: 600, color: '#666', textAlign: 'center' }}>Koi payment nahi hui</p>
-                  )}
-                </div>
-              </div>
-            </div>
+                      <p className="text-sm font-bold text-gray-500 uppercase tracking-wider relative z-10">Bills Generated</p>
+                      <h3 className="text-4xl font-black text-gray-900 mt-1 relative z-10">{analytics.billsCount}</h3>
+                      <p className="text-xs font-semibold text-gray-400 mt-2 relative z-10">In selected timeframe</p>
+                    </div>
+                  </div>
 
-            {/* Cash Tally Table */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-4 md:p-7 shadow-sm">
-              <h2 style={{ fontSize: 18, fontWeight: 900, color: '#111827', margin: '0 0 24px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <History className="w-5 h-5" />
-                Galle ka Hisaab (Cash Logs)
-              </h2>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <th style={{ padding: '12px 0', fontWeight: 800, textTransform: 'uppercase', fontSize: 11, color: '#666' }}>Date / Time</th>
-                      <th style={{ padding: '12px 0', fontWeight: 800, textTransform: 'uppercase', fontSize: 11, color: '#666' }}>Kisne Check Kiya</th>
-                      <th style={{ padding: '12px 0', fontWeight: 800, textTransform: 'uppercase', fontSize: 11, color: '#666', textAlign: 'right' }}>System me Cash</th>
-                      <th style={{ padding: '12px 0', fontWeight: 800, textTransform: 'uppercase', fontSize: 11, color: '#666', textAlign: 'right' }}>Galle me Cash</th>
-                      <th style={{ padding: '12px 0', fontWeight: 800, textTransform: 'uppercase', fontSize: 11, color: '#666', textAlign: 'right' }}>Farq (Shortage/Surplus)</th>
-                      <th style={{ padding: '12px 0', fontWeight: 800, textTransform: 'uppercase', fontSize: 11, color: '#666', textAlign: 'center' }}>Notes</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tallies.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} style={{ padding: '40px 0', textAlign: 'center', fontWeight: 600, color: '#666' }}>Koi cash log nahi hai.</td>
-                      </tr>
-                    ) : (
-                      tallies.map((t) => {
-                        const diff = Number(t.difference);
-                        const isOk = diff === 0;
-                        const isShort = diff < 0;
+                  {/* Category Breakdown (Overview Mode) */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                    <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
+                      <BarChart2 className="w-5 h-5 text-[#059669]" />
+                      Revenue by Category
+                    </h3>
+                    <div className="space-y-4">
+                      {analytics.categoryBreakdown.length > 0 ? analytics.categoryBreakdown.map((cat, i) => {
+                        const percent = analytics.currentRevenue > 0 ? (cat.amount / analytics.currentRevenue) * 100 : 0;
                         return (
-                          <tr key={t.id} style={{ borderBottom: '1px solid #eaeaea' }}>
-                            <td style={{ padding: '16px 0', fontWeight: 700, color: '#111827' }}>{new Date(t.createdAt).toLocaleString()}</td>
-                            <td style={{ padding: '16px 0', fontWeight: 600, color: '#666' }}>{t.user?.name || 'Unknown'}</td>
-                            <td style={{ padding: '16px 0', textAlign: 'right', fontWeight: 800, color: '#111827' }}>₹{Number(t.expectedAmount).toFixed(0)}</td>
-                            <td style={{ padding: '16px 0', textAlign: 'right', fontWeight: 800, color: '#111827' }}>₹{Number(t.actualAmount).toFixed(0)}</td>
-                            <td style={{ padding: '16px 0', textAlign: 'right' }}>
-                              {isOk ? (
-                                <span style={{ fontWeight: 800, color: '#666' }}>Matches!</span>
-                              ) : (
-                                <span style={{ 
-                                  fontWeight: 900, 
-                                  color: isShort ? '#000' : '#000', 
-                                  background: isShort ? '#f0f0f0' : '#fff',
-                                  border: '1px solid #e5e7eb', borderRadius: 16,
-                                  padding: '4px 8px'
-                                }}>
-                                  {isShort ? '' : '+'}₹{diff.toFixed(0)}
-                                </span>
-                              )}
-                            </td>
-                            <td style={{ padding: '16px 0', textAlign: 'center', fontSize: 12, color: '#666', fontWeight: 600 }}>{t.notes || '-'}</td>
+                          <div key={i}>
+                            <div className="flex justify-between text-sm font-bold text-gray-700 mb-1">
+                              <span>{cat.name}</span>
+                              <span>₹{cat.amount.toFixed(2)} ({percent.toFixed(1)}%)</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percent}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className="bg-[#059669] h-2.5 rounded-full"
+                              ></motion.div>
+                            </div>
+                          </div>
+                        )
+                      }) : (
+                        <p className="text-sm text-gray-500 font-semibold text-center py-4">No category data available.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: PRODUCT INSIGHTS */}
+              {activeTab === 'insights' && (
+                <div className="space-y-6">
+                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                    <h3 className="text-lg font-black text-gray-900 mb-2 flex items-center gap-2">
+                      <Award className="w-5 h-5 text-amber-500" />
+                      Top Selling Products
+                    </h3>
+                    <p className="text-sm text-gray-500 font-semibold mb-6">Products driving the most volume in the selected timeframe.</p>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-100 text-xs uppercase tracking-wider text-gray-400 font-black">
+                            <th className="pb-3 px-4 pl-0">Rank</th>
+                            <th className="pb-3 px-4">Product</th>
+                            <th className="pb-3 px-4 text-right">Qty Sold</th>
+                            <th className="pb-3 px-4 text-right">Revenue</th>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                        </thead>
+                        <tbody>
+                          {analytics.topSellers.length > 0 ? analytics.topSellers.map((item, idx) => (
+                            <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                              <td className="py-4 px-4 pl-0">
+                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${idx === 0 ? 'bg-amber-100 text-amber-700' : idx === 1 ? 'bg-gray-200 text-gray-700' : idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500'}`}>
+                                  #{idx + 1}
+                                </span>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="font-bold text-gray-900">{item.product.name}</div>
+                                <div className="text-xs text-gray-500 font-semibold">Stock left: {item.product.stock} {item.product.unit}</div>
+                              </td>
+                              <td className="py-4 px-4 text-right font-black text-gray-700">
+                                {item.quantity} <span className="text-xs text-gray-400 font-bold">{item.product.unit}</span>
+                              </td>
+                              <td className="py-4 px-4 text-right font-black text-[#059669]">
+                                ₹{item.revenue.toFixed(2)}
+                              </td>
+                            </tr>
+                          )) : (
+                            <tr><td colSpan={4} className="text-center py-8 text-gray-500 font-semibold">No sales data found.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: INVENTORY HEALTH */}
+              {activeTab === 'inventory' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Restock Needed (Kya Mangana Hai) */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm border-t-4 border-t-red-500">
+                    <h3 className="text-lg font-black text-gray-900 mb-2 flex items-center gap-2">
+                      <ShoppingBag className="w-5 h-5 text-red-500" />
+                      Must Restock (Kya Mangana Hai)
+                    </h3>
+                    <p className="text-sm text-gray-500 font-semibold mb-6">Fast-moving items that are running out of stock (Stock &lt; 10).</p>
+                    
+                    <div className="space-y-4">
+                      {analytics.restockNeeded.length > 0 ? analytics.restockNeeded.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-red-50/50 rounded-2xl border border-red-100">
+                          <div>
+                            <p className="font-bold text-gray-900">{item.product.name}</p>
+                            <p className="text-xs font-semibold text-gray-500 mt-1">Sold {item.qtySold} {item.product.unit} recently</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="inline-block px-3 py-1 bg-red-100 text-red-700 font-black text-xs rounded-full animate-pulse">
+                              Only {item.stock} left
+                            </span>
+                          </div>
+                        </div>
+                      )) : (
+                        <div className="p-6 text-center border-2 border-dashed border-gray-200 rounded-2xl">
+                          <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                          <p className="font-bold text-gray-900">All Good!</p>
+                          <p className="text-xs font-semibold text-gray-500">No fast-moving items are low on stock.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Slow Movers (Kya Kam Karna Hai) */}
+                  <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm border-t-4 border-t-gray-400">
+                    <h3 className="text-lg font-black text-gray-900 mb-2 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-gray-500" />
+                      Slow Movers (Kya Kam Karna Hai)
+                    </h3>
+                    <p className="text-sm text-gray-500 font-semibold mb-6">Items with high stock (&gt;20) but zero or very low sales recently.</p>
+                    
+                    <div className="space-y-4">
+                      {analytics.slowMovers.length > 0 ? analytics.slowMovers.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                          <div>
+                            <p className="font-bold text-gray-900">{item.product.name}</p>
+                            <p className="text-xs font-semibold text-gray-500 mt-1">Sold only {item.qtySold} {item.product.unit}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="inline-block px-3 py-1 bg-gray-200 text-gray-700 font-black text-xs rounded-full">
+                              {item.stock} {item.product.unit} in stock
+                            </span>
+                          </div>
+                        </div>
+                      )) : (
+                        <div className="p-6 text-center border-2 border-dashed border-gray-200 rounded-2xl">
+                          <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                          <p className="font-bold text-gray-900">Efficient Inventory!</p>
+                          <p className="text-xs font-semibold text-gray-500">No dead stock found.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB: CASH TALLY */}
+              {activeTab === 'cash' && (
+                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <div>
+                      <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                        <Scale className="w-5 h-5 text-[#059669]" />
+                        Galle ka Hisaab (Cash Logs)
+                      </h3>
+                      <p className="text-sm text-gray-500 font-semibold mt-1">Track physical cash vs system records</p>
+                    </div>
+                    <button
+                      onClick={() => setShowTallyModal(true)}
+                      className="bg-gray-900 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-colors flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Galla Milayein (Tally Now)
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="text-xs text-gray-400 uppercase bg-gray-50 rounded-xl">
+                        <tr>
+                          <th className="px-4 py-3 font-black rounded-l-xl">Date / Time</th>
+                          <th className="px-4 py-3 font-black">Kisne Check Kiya</th>
+                          <th className="px-4 py-3 font-black text-right">System Me Cash</th>
+                          <th className="px-4 py-3 font-black text-right">Galle Me Cash</th>
+                          <th className="px-4 py-3 font-black text-right">Farq (Shortage/Surplus)</th>
+                          <th className="px-4 py-3 font-black rounded-r-xl">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tallies.length > 0 ? tallies.map((t) => {
+                          const diff = Number(t.difference);
+                          const isShort = diff < 0;
+                          const isSurplus = diff > 0;
+                          return (
+                            <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                              <td className="px-4 py-4 font-semibold text-gray-700">
+                                {new Date(t.createdAt).toLocaleDateString()} <span className="text-gray-400 text-xs">{new Date(t.createdAt).toLocaleTimeString()}</span>
+                              </td>
+                              <td className="px-4 py-4 font-bold text-gray-900">{t.user?.name || 'Unknown'}</td>
+                              <td className="px-4 py-4 text-right font-bold text-gray-600">₹{t.expectedAmount}</td>
+                              <td className="px-4 py-4 text-right font-black text-gray-900">₹{t.actualAmount}</td>
+                              <td className="px-4 py-4 text-right">
+                                {diff === 0 ? (
+                                  <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-black">
+                                    <Check className="w-3 h-3" /> MATCHED
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-black ${isShort ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {isShort ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                                    ₹{Math.abs(diff).toFixed(2)} {isShort ? 'SHORT' : 'EXTRA'}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-4 text-gray-500 text-xs font-semibold max-w-[200px] truncate" title={t.notes || ''}>
+                                {t.notes || '-'}
+                              </td>
+                            </tr>
+                          );
+                        }) : (
+                          <tr>
+                            <td colSpan={6} className="text-center py-12">
+                              <Scale className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                              <p className="text-gray-500 font-bold">Koi cash log nahi hai.</p>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
             </div>
-          </div>
-        ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ fontWeight: 600, color: '#666' }}>Error: Data nahi mila.</p>
+          )}
+        </div>
+      </main>
+
+      {/* Tally Modal */}
+      <AnimatePresence>
+        {showTallyModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <h3 className="text-xl font-black text-gray-900">Cash Tally Entry</h3>
+                <button onClick={() => setShowTallyModal(false)} className="text-gray-400 hover:text-gray-600 bg-white rounded-full p-2 shadow-sm border border-gray-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleTallySubmit} className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Galle mein physically kitna cash hai?</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                    <input
+                      type="number"
+                      required
+                      step="0.01"
+                      min="0"
+                      value={actualAmount}
+                      onChange={(e) => setActualAmount(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl focus:ring-[#059669] focus:border-[#059669] block pl-10 pr-4 py-3 font-bold transition-colors"
+                      placeholder="e.g. 5240.50"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Notes (Optional)</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-xl focus:ring-[#059669] focus:border-[#059669] block p-4 font-medium transition-colors"
+                    placeholder="Koi farq kyu aaya, uska reason..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={submittingTally}
+                    className="w-full text-white bg-[#059669] hover:bg-green-700 font-black rounded-xl text-sm px-5 py-3.5 text-center shadow-md shadow-green-900/10 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {submittingTally ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>Save Tally <CheckCircle className="w-4 h-4" /></>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
         )}
-      </div>
-
-      {/* Cash Tally Modal */}
-      {showTallyModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 32, width: '100%', maxWidth: 450, boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
-            <h3 style={{ fontSize: 20, fontWeight: 900, color: '#111827', margin: '0 0 8px' }}>Galla Milayein (Reconcile Cash)</h3>
-            <p style={{ fontSize: 13, color: '#666', margin: '0 0 24px', fontWeight: 600 }}>Dukaan ke galle (drawer) me abhi kitna cash rakha hai?</p>
-
-            <form onSubmit={handleTallySubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: '#111827', textTransform: 'uppercase', marginBottom: 8 }}>Asal mein kitna Cash hai?</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  min="0"
-                  value={actualAmount}
-                  onChange={(e) => setActualAmount(e.target.value)}
-                  placeholder="Jaise: 1500"
-                  style={{ width: '100%', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '12px', fontSize: 13, fontWeight: 600, outline: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: '#111827', textTransform: 'uppercase', marginBottom: 8 }}>Koi Note ya Reason (Agar paisa kam/zyada hai)</label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Jaise: Khulle diye thay, ya advance diya tha"
-                  style={{ width: '100%', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: '12px', fontSize: 13, fontWeight: 600, outline: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-                <button
-                  type="button"
-                  onClick={() => { setShowTallyModal(false); setActualAmount(''); setNotes(''); }}
-                  style={{ flex: 1, background: '#ffffff', color: '#111827',  border: '1px solid #e5e7eb', borderRadius: 16, padding: '14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingTally}
-                  style={{ flex: 1, background: '#111827', color: '#ffffff',  border: '1px solid #e5e7eb', borderRadius: 16, padding: '14px', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', opacity: submittingTally ? 0.5 : 1 }}
-                >
-                  {submittingTally ? 'Save ho raha hai...' : 'Save Karein'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </AnimatePresence>
     </div>
   );
 }
