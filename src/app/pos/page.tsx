@@ -425,7 +425,10 @@ export default function PosPage() {
         showToast(`Customer connected: ${res.data.data.name}`, 'success');
       } catch (err) {
         setIsNewCustomer(true);
-        setCustomerName('');
+        // Only clear the name if it's not already filled, so we don't wipe what the user typed.
+        if (!customerName) {
+          setCustomerName('');
+        }
         showToast('New Customer! Please fill in their name.', 'success');
       } finally {
         setSearchingCustomer(false);
