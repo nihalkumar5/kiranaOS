@@ -180,7 +180,7 @@ export default function ReportsPage() {
 
       <Sidebar />
 
-      <main className="flex-1 lg:pl-64 flex flex-col max-h-screen overflow-hidden">
+      <main className="flex-1 flex flex-col max-h-screen overflow-hidden">
         {/* Header */}
         <header className="bg-white border-b border-gray-100 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20 shadow-sm">
           <div>
