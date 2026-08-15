@@ -31,10 +31,20 @@ export async function GET(req: NextRequest) {
     const totalDiscount = orders.reduce((sum, ord) => sum + Number(ord.discount), 0);
     const billsCount = orders.length;
 
+
     const paymentMap: Record<string, number> = {};
     const timelineMap: Record<string, { sales: number; bills: number }> = {};
 
+    // Pre-fill timelineMap with all dates in range
+    let currDate = new Date(startDate);
+    while (currDate <= endDate) {
+      const dateStr = currDate.toISOString().split('T')[0];
+      timelineMap[dateStr] = { sales: 0, bills: 0 };
+      currDate.setDate(currDate.getDate() + 1);
+    }
+
     for (const order of orders) {
+
       const mode = order.paymentMode || 'CASH';
       paymentMap[mode] = (paymentMap[mode] || 0) + Number(order.totalAmount);
 

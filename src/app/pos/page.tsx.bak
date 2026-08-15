@@ -28,7 +28,7 @@ import {
   XCircle,
   X,
   Sparkles,
-  ShoppingBag, Zap,
+  ShoppingBag,
   Users
 } from 'lucide-react';
 
@@ -163,11 +163,6 @@ export default function PosPage() {
   const discountInputRef = useRef<HTMLInputElement>(null);
   const customerMobileRef = useRef<HTMLInputElement>(null);
 
-  // Search Dropdown state
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [searchSelectedIndex, setSearchSelectedIndex] = useState(-1);
-
-
   // Redirect if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
@@ -247,7 +242,6 @@ export default function PosPage() {
       if (e.key === 'Escape') {
         e.preventDefault();
         setSearchQuery('');
-        setShowSearchDropdown(false);
         if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
         showToast('Input refocused', 'success');
       } else if (e.key === 'F8') {
@@ -431,10 +425,7 @@ export default function PosPage() {
         showToast(`Customer connected: ${res.data.data.name}`, 'success');
       } catch (err) {
         setIsNewCustomer(true);
-        // Only clear the name if it's not already filled, so we don't wipe what the user typed.
-        if (!customerName) {
-          setCustomerName('');
-        }
+        setCustomerName('');
         showToast('New Customer! Please fill in their name.', 'success');
       } finally {
         setSearchingCustomer(false);
@@ -564,27 +555,12 @@ export default function PosPage() {
 
       const orderPayload = {
         customerId: finalCustomerId,
-        customerName,
-        customerMobile,
         discount,
         paymentMode,
-        subtotal: cartTotals.subtotal,
-        gstAmount: cartTotals.totalTax,
-        totalAmount: cartTotals.finalTotal,
-        items: cartItemsList.map((item) => {
-          const price = Number(item.product.sellingPrice);
-          const gstRate = Number(item.product.gst || 0);
-          const basePrice = price / (1 + gstRate / 100);
-          const itemGst = (price - basePrice) * item.quantity;
-          
-          return {
-            productId: item.product.id,
-            quantity: item.quantity,
-            price: price,
-            gstRate: gstRate,
-            gstAmount: itemGst
-          };
-        }),
+        items: cartItemsList.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        })),
       };
 
       const res = await api.post('/orders', orderPayload);
@@ -763,38 +739,16 @@ export default function PosPage() {
             }}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setShowSearchDropdown(e.target.value.trim() !== '');
-              setSearchSelectedIndex(0); // Reset selection
               if (window.innerWidth < 768 && isBillMode) {
                 setIsBillMode(false);
               }
             }}
             onKeyDown={async (e) => {
               const currentValue = e.currentTarget.value;
-              if (e.key === 'ArrowDown') {
+              if (e.key === 'Enter' && currentValue.trim() !== '') {
                 e.preventDefault();
-                setSearchSelectedIndex(prev => 
-                  prev < Math.min(filteredProducts.length, 10) - 1 ? prev + 1 : prev
-                );
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setSearchSelectedIndex(prev => prev > 0 ? prev - 1 : 0);
-              } else if (e.key === 'Enter' && currentValue.trim() !== '') {
-                e.preventDefault();
-                
-                if (showSearchDropdown && searchSelectedIndex >= 0 && searchSelectedIndex < filteredProducts.length) {
-                  // User selected from dropdown
-                  handleGridProductTap(filteredProducts[searchSelectedIndex]);
-                  setSearchQuery('');
-                  setShowSearchDropdown(false);
-                  setSearchSelectedIndex(-1);
-                  return;
-                }
-
                 const cleanQuery = currentValue.trim();
                 setSearchQuery('');
-                setShowSearchDropdown(false);
-                setSearchSelectedIndex(-1);
                 
                 let matchedProduct = productsList.find(p => p.barcode === cleanQuery);
                 
@@ -814,68 +768,11 @@ export default function PosPage() {
                   setQuickAddBarcode(cleanQuery);
                   setShowQuickAddModal(true);
                 }
-              } else if (e.key === 'Escape') {
-                setShowSearchDropdown(false);
               }
             }}
             placeholder='Search or Scan Barcode...'
             className="w-full bg-gray-50/50 backdrop-blur-sm border border-gray-200 focus:bg-white focus:border-zinc-300 focus:ring-4 focus:ring-zinc-500/10 rounded-full pl-12 md:pl-14 pr-6 py-2.5 md:py-3.5 text-[14px] md:text-[15px] font-bold focus:outline-none transition-all placeholder-gray-400 text-gray-900 shadow-inner relative z-0"
           />
-
-          {/* Search Dropdown */}
-          <AnimatePresence>
-            {showSearchDropdown && searchQuery.trim() !== '' && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[350px] overflow-y-auto"
-              >
-                {filteredProducts.length > 0 ? (
-                  <div className="py-2">
-                    {filteredProducts.slice(0, 10).map((product, index) => (
-                      <div
-                        key={product.id}
-                        onClick={() => {
-                          handleGridProductTap(product);
-                          setSearchQuery('');
-                          setShowSearchDropdown(false);
-                          if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
-                        }}
-                        onMouseEnter={() => setSearchSelectedIndex(index)}
-                        className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors ${searchSelectedIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                      >
-                        {product.image ? (
-                          <img src={product.image} alt={product.name} className="w-10 h-10 object-cover rounded-md border border-gray-200" />
-                        ) : (
-                          <div className="w-10 h-10 bg-gray-100 rounded-md border border-gray-200 flex items-center justify-center">
-                            <span className="text-gray-400 font-bold text-xs">{product.name.charAt(0)}</span>
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-gray-900 truncate">{product.name}</p>
-                          <p className="text-xs text-gray-500">Stock: {product.stock} {product.unit}</p>
-                        </div>
-                        <div className="font-bold text-sm text-gray-900">
-                          ₹{product.sellingPrice}
-                        </div>
-                      </div>
-                    ))}
-                    {filteredProducts.length > 10 && (
-                      <div className="px-4 py-2 text-xs font-semibold text-center text-gray-500 bg-gray-50 border-t border-gray-100">
-                        Showing 10 of {filteredProducts.length} results
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-8 px-4 text-center">
-                    <p className="text-gray-500 text-sm font-semibold">No products found matching "{searchQuery}"</p>
-                    <p className="text-xs text-gray-400 mt-1">Press Enter to Quick Add</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         <div className="hidden md:flex items-center gap-4">
@@ -1011,7 +908,7 @@ export default function PosPage() {
                 </div>
                 
                 <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide">
-                  {productsList.filter(p => ["rajshree", "vimal", "mahua", "abis", "kalash", "rahar dal", "masoor dal", "sugar", "surf excel", "fena"].some(kw => p.name.toLowerCase().includes(kw))).slice(0, 15).map((p) => {
+                  {productsList.slice(0, 8).map((p) => {
 const isOutOfStock = false; // ALLOW NEGATIVE STOCK
                         const showLowStock = Number(p.stock) <= 0;
                         const cartQty = cart[p.barcode || p.id]?.quantity || 0;
@@ -1087,7 +984,35 @@ const isOutOfStock = false; // ALLOW NEGATIVE STOCK
                 </div>
               </div>
             )}
-
+            {!searchQuery && (
+              <div className="mb-12">
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-6 flex items-center gap-2">
+                  <ShoppingBag className="w-6 h-6 text-[#059669]" />
+                  Shop by Category
+                </h2>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-4 gap-y-6 md:gap-x-6 md:gap-y-8">
+                  {[
+                    {name: 'Paan Corner', img: 'https://images.unsplash.com/photo-1599305090598-fe179d501227?w=200&h=200&fit=crop'},
+                    {name: 'Dairy, Bread & Eggs', img: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&h=200&fit=crop'},
+                    {name: 'Fruits & Vegetables', img: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&h=200&fit=crop'},
+                    {name: 'Cold Drinks & Juices', img: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&h=200&fit=crop'},
+                    {name: 'Snacks & Munchies', img: 'https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=200&h=200&fit=crop'},
+                    {name: 'Breakfast & Instant', img: 'https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=200&h=200&fit=crop'},
+                    {name: 'Sweet Tooth', img: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=200&h=200&fit=crop'},
+                    {name: 'Bakery & Biscuits', img: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=200&h=200&fit=crop'},
+                    {name: 'Personal Care', img: 'https://images.unsplash.com/photo-1629198688000-71f23e745b6e?w=200&h=200&fit=crop'},
+                    {name: 'Home Care', img: 'https://images.unsplash.com/photo-1584820927498-cafe2c11818e?w=200&h=200&fit=crop'},
+                  ].map((cat, i) => (
+                    <motion.div whileHover={{ y: -4 }} whileTap={{ scale: 0.95 }} key={i} className="flex flex-col items-center gap-3 cursor-pointer group">
+                      <div className="w-[88px] h-[88px] mx-auto bg-[#f4f6f9] rounded-[20px] overflow-hidden flex items-center justify-center shadow-sm border border-gray-100 group-hover:shadow-md group-hover:border-[#059669]/40 transition-all">
+                        <img src={cat.img} alt={cat.name} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
+                      </div>
+                      <span className="font-bold text-[13px] text-zinc-700 text-center leading-tight tracking-tight px-1 group-hover:text-[#059669] transition-colors">{cat.name}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {filteredProducts.length === 0 ? (
                <div className="py-20 flex flex-col items-center">
