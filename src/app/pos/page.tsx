@@ -923,7 +923,7 @@ export default function PosPage() {
                 </div>
                 
                 <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-hide">
-                  {productsList.slice(0, 8).map((p) => {
+                  {productsList.filter(p => ["rajshree", "vimal", "mahua", "abis", "kalash", "rahar dal", "masoor dal", "sugar", "surf excel", "fena"].some(kw => p.name.toLowerCase().includes(kw))).slice(0, 15).map((p) => {
 const isOutOfStock = false; // ALLOW NEGATIVE STOCK
                         const showLowStock = Number(p.stock) <= 0;
                         const cartQty = cart[p.barcode || p.id]?.quantity || 0;
