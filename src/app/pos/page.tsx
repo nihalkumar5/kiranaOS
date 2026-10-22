@@ -186,6 +186,14 @@ const HINGLISH_MAP: Record<string, string[]> = {
   egg: ['egg', 'eggs', 'anda'],
 };
 
+function formatProductName(name: string) {
+  if (!name) return '';
+  return name
+    .split(' ')
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
+    .join(' ');
+}
+
 export default function PosPage() {
   const { user, store, logout, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -1143,7 +1151,7 @@ export default function PosPage() {
 
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <p className="text-xs font-bold text-gray-900 truncate leading-snug">{product.name}</p>
+                                      <p className="text-xs font-bold text-gray-900 truncate leading-snug">{formatProductName(product.name)}</p>
                                       {product.brand && (
                                         <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
                                           {product.brand}
@@ -1366,59 +1374,69 @@ export default function PosPage() {
                       key={p.id}
                       layout
                       onClick={() => handleGridProductTap(p)}
-                      className="bg-white rounded-2xl border border-gray-200/90 hover:border-[#0C831F] p-3 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-150 group relative cursor-pointer select-none active:scale-[0.98]"
+                      className="bg-white rounded-2xl border border-slate-200/80 hover:border-[#0C831F] hover:shadow-lg p-3.5 flex flex-col justify-between shadow-2xs transition-all duration-200 group relative cursor-pointer select-none active:scale-[0.98]"
                     >
-                      {/* Top: Stock Status & Discount Pill (No 10 MINS tag) */}
+                      {/* Top: Stock Status & Discount Pill */}
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                          Number(p.stock) <= 5
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200/60 font-black'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            Number(p.stock) <= 5
+                              ? 'bg-amber-50 text-amber-800 border border-amber-200/80 font-black'
+                              : 'bg-slate-100 text-slate-600 font-semibold'
+                          }`}
+                        >
                           {Number(p.stock) <= 5 ? `Low (${p.stock})` : `Stock: ${p.stock}`}
                         </span>
 
                         {discountPercent > 0 && (
-                          <span className="text-[10px] font-black bg-emerald-50 text-[#0C831F] border border-emerald-200/60 px-1.5 py-0.5 rounded-md">
+                          <span className="text-[10px] font-black bg-[#0C831F] text-white px-2 py-0.5 rounded-full shadow-2xs tracking-wide">
                             {discountPercent}% OFF
                           </span>
                         )}
                       </div>
 
-                      {/* Product Image / Thumbnail */}
-                      <div className="w-full h-28 my-1 flex items-center justify-center bg-[#fafafa] rounded-xl overflow-hidden p-2">
+                      {/* Product Image Stage */}
+                      <div className="w-full h-36 my-1.5 flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/60 rounded-2xl overflow-hidden p-3 border border-slate-100/80 group-hover:border-slate-200 transition-colors relative">
                         {p.image ? (
                           <img
                             src={p.image}
                             alt={p.name}
-                            className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                            className="max-h-full max-w-full object-contain mix-blend-multiply drop-shadow-[0_4px_10px_rgba(0,0,0,0.06)] group-hover:drop-shadow-[0_8px_20px_rgba(0,0,0,0.12)] group-hover:scale-108 transition-all duration-300 ease-out"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0C831F] font-bold text-base flex items-center justify-center font-mono border border-emerald-100 shadow-2xs">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/20 text-[#0C831F] font-black text-xl flex items-center justify-center font-mono border border-[#0C831F]/20 shadow-xs">
                             {p.name.slice(0, 2).toUpperCase()}
                           </div>
                         )}
                       </div>
 
-                      {/* Product Name & Unit */}
-                      <div className="flex-1 flex flex-col justify-end">
-                        <h4 className="text-xs font-bold text-gray-900 leading-tight line-clamp-2 min-h-[32px] group-hover:text-[#0C831F] transition-colors">
-                          {p.name}
+                      {/* Product Name & Pack Pill */}
+                      <div className="flex-1 flex flex-col justify-end mt-1">
+                        {p.brand && (
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5 truncate">
+                            {p.brand}
+                          </span>
+                        )}
+                        <h4 className="text-[13px] sm:text-sm font-bold text-slate-900 leading-[1.3] line-clamp-2 min-h-[34px] group-hover:text-[#0C831F] transition-colors tracking-tight">
+                          {formatProductName(p.name)}
                         </h4>
-                        <span className="text-[11px] text-gray-500 font-medium mt-1">
-                          {p.unit || '1 unit'}
-                        </span>
+                        <div className="mt-1.5">
+                          <span className="inline-flex items-center text-[11px] font-bold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200/50">
+                            {p.unit || '1 unit'}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Bottom Price Row & Iconic Blinkit ADD Button */}
-                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
                         {/* Price & MRP */}
                         <div className="flex flex-col">
-                          <span className="text-sm font-mono font-black text-gray-900 leading-none">
+                          <span className="text-base font-mono font-black text-slate-900 leading-none">
                             ₹{price.toFixed(0)}
                           </span>
                           {mrp > price && (
-                            <span className="text-[10px] font-mono text-gray-400 line-through mt-0.5 leading-none">
+                            <span className="text-[11px] font-mono text-slate-400 line-through mt-0.5 leading-none">
                               ₹{mrp.toFixed(0)}
                             </span>
                           )}
@@ -1427,18 +1445,18 @@ export default function PosPage() {
                         {/* BLINKIT FAMOUS ADD BUTTON / STEPPER */}
                         <div onClick={(e) => e.stopPropagation()}>
                           {cartQty > 0 ? (
-                            <div className="flex items-center bg-[#0C831F] text-white rounded-lg h-7 px-1 shadow-sm">
+                            <div className="flex items-center bg-[#0C831F] text-white rounded-xl h-8 px-1.5 shadow-sm">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   updateQuantity(p.barcode || p.id, cartQty - 1);
                                 }}
-                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold cursor-pointer"
+                                className="w-6 h-6 flex items-center justify-center hover:bg-[#0a6d1a] rounded-lg text-white font-bold cursor-pointer transition-colors active:scale-90"
                               >
-                                <Minus className="w-3 h-3" />
+                                <Minus className="w-3.5 h-3.5" />
                               </button>
-                              <span className="font-mono font-black text-xs px-2 text-white">
+                              <span className="font-mono font-black text-xs px-2.5 text-white">
                                 {cartQty}
                               </span>
                               <button
@@ -1447,9 +1465,9 @@ export default function PosPage() {
                                   e.stopPropagation();
                                   updateQuantity(p.barcode || p.id, cartQty + 1);
                                 }}
-                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold cursor-pointer"
+                                className="w-6 h-6 flex items-center justify-center hover:bg-[#0a6d1a] rounded-lg text-white font-bold cursor-pointer transition-colors active:scale-90"
                               >
-                                <Plus className="w-3 h-3" />
+                                <Plus className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           ) : (
@@ -1459,7 +1477,7 @@ export default function PosPage() {
                                 e.stopPropagation();
                                 handleGridProductTap(p);
                               }}
-                              className="px-4 py-1.5 bg-white border border-[#0C831F] hover:bg-[#0C831F] hover:text-white text-[#0C831F] rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95"
+                              className="px-4 py-1.5 bg-white border-2 border-[#0C831F] hover:bg-[#0C831F] hover:text-white text-[#0C831F] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-2xs cursor-pointer active:scale-95"
                             >
                               ADD
                             </button>
