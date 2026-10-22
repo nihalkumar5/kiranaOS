@@ -1365,7 +1365,8 @@ export default function PosPage() {
                     <motion.div
                       key={p.id}
                       layout
-                      className="bg-white rounded-2xl border border-gray-200/90 hover:border-gray-300 p-3 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-200 group relative"
+                      onClick={() => handleGridProductTap(p)}
+                      className="bg-white rounded-2xl border border-gray-200/90 hover:border-[#0C831F] p-3 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-150 group relative cursor-pointer select-none active:scale-[0.98]"
                     >
                       {/* Top: Stock Status & Discount Pill (No 10 MINS tag) */}
                       <div className="flex items-center justify-between mb-1.5">
@@ -1424,12 +1425,16 @@ export default function PosPage() {
                         </div>
 
                         {/* BLINKIT FAMOUS ADD BUTTON / STEPPER */}
-                        <div>
+                        <div onClick={(e) => e.stopPropagation()}>
                           {cartQty > 0 ? (
                             <div className="flex items-center bg-[#0C831F] text-white rounded-lg h-7 px-1 shadow-sm">
                               <button
-                                onClick={() => updateQuantity(p.barcode || p.id, cartQty - 1)}
-                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold"
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateQuantity(p.barcode || p.id, cartQty - 1);
+                                }}
+                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold cursor-pointer"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
@@ -1437,16 +1442,24 @@ export default function PosPage() {
                                 {cartQty}
                               </span>
                               <button
-                                onClick={() => updateQuantity(p.barcode || p.id, cartQty + 1)}
-                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold"
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateQuantity(p.barcode || p.id, cartQty + 1);
+                                }}
+                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold cursor-pointer"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
                           ) : (
                             <button
-                              onClick={() => handleGridProductTap(p)}
-                              className="px-4 py-1.5 bg-white border border-[#0C831F] hover:bg-[#e9f7ec] text-[#0C831F] rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGridProductTap(p);
+                              }}
+                              className="px-4 py-1.5 bg-white border border-[#0C831F] hover:bg-[#0C831F] hover:text-white text-[#0C831F] rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-xs cursor-pointer active:scale-95"
                             >
                               ADD
                             </button>
