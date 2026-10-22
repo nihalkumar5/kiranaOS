@@ -1394,9 +1394,9 @@ export default function PosPage() {
                             className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform"
                           />
                         ) : (
-                          <span className="text-3xl font-bold text-gray-300">
+                          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0C831F] font-bold text-base flex items-center justify-center font-mono border border-emerald-100 shadow-2xs">
                             {p.name.slice(0, 2).toUpperCase()}
-                          </span>
+                          </div>
                         )}
                       </div>
 
@@ -1555,43 +1555,71 @@ export default function PosPage() {
                       return (
                         <div
                           key={key}
-                          className="flex items-center justify-between gap-3 p-2.5 bg-white rounded-xl border border-gray-100 shadow-2xs"
+                          className="flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-gray-200/80 hover:border-gray-300 transition-all shadow-2xs"
                         >
-                          <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 border border-gray-100">
+                          {/* Photo / Thumbnail */}
+                          <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-center overflow-hidden shrink-0 p-1">
                             {item.product.image ? (
-                              <img src={item.product.image} alt={item.product.name} className="w-full h-full object-contain" />
+                              <img
+                                src={item.product.image}
+                                alt={item.product.name}
+                                className="w-full h-full object-contain mix-blend-multiply"
+                              />
                             ) : (
-                              <span className="text-xs font-bold text-gray-500">{item.product.name.slice(0, 2)}</span>
+                              <div className="w-full h-full rounded-lg bg-emerald-50 text-[#0C831F] font-bold text-xs flex items-center justify-center font-mono">
+                                {item.product.name.slice(0, 2).toUpperCase()}
+                              </div>
                             )}
                           </div>
 
+                          {/* Product Info */}
                           <div className="min-w-0 flex-1">
-                            <h5 className="text-xs font-bold text-gray-900 truncate leading-tight">{item.product.name}</h5>
-                            <span className="text-[10px] text-gray-500 font-mono">
-                              ₹{price.toFixed(0)} × {item.quantity}
-                            </span>
+                            <h5 className="text-xs font-bold text-gray-900 truncate leading-snug">
+                              {item.product.name}
+                            </h5>
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium mt-0.5">
+                              <span>₹{price.toFixed(0)}</span>
+                              {item.product.unit && (
+                                <>
+                                  <span>•</span>
+                                  <span>{item.product.unit}</span>
+                                </>
+                              )}
+                              {item.quantity > 1 && (
+                                <span className="text-[10px] font-mono text-gray-400">
+                                  (×{item.quantity})
+                                </span>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center bg-[#0C831F] text-white rounded-lg h-6 px-1 shadow-2xs">
+                          {/* Stepper & Total Price */}
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="flex items-center bg-[#0C831F] text-white rounded-lg h-7 px-1 shadow-xs">
                               <button
+                                type="button"
                                 onClick={() => updateQuantity(key, item.quantity - 1)}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold"
+                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold cursor-pointer transition-colors active:scale-90"
                               >
-                                <Minus className="w-2.5 h-2.5" />
+                                <Minus className="w-3 h-3" />
                               </button>
-                              <span className="font-mono font-bold text-xs px-1.5">{item.quantity}</span>
+                              <span className="font-mono font-black text-xs px-2 text-white">
+                                {item.quantity}
+                              </span>
                               <button
+                                type="button"
                                 onClick={() => updateQuantity(key, item.quantity + 1)}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold"
+                                className="w-5 h-5 flex items-center justify-center hover:bg-[#0a6d1a] rounded text-white font-bold cursor-pointer transition-colors active:scale-90"
                               >
-                                <Plus className="w-2.5 h-2.5" />
+                                <Plus className="w-3 h-3" />
                               </button>
                             </div>
 
-                            <span className="font-mono font-black text-xs text-gray-900 min-w-[50px] text-right">
-                              ₹{itemTotal.toFixed(0)}
-                            </span>
+                            <div className="min-w-[56px] text-right">
+                              <span className="font-mono font-black text-sm text-gray-900 block leading-tight">
+                                ₹{itemTotal.toFixed(0)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
