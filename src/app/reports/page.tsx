@@ -59,12 +59,8 @@ export default function ReportsPage() {
 
   // Access check
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (user.role !== 'ADMIN') {
-        router.push('/pos');
-      }
+    if (!authLoading && user && user.role !== 'ADMIN') {
+      router.push('/pos');
     }
   }, [user, authLoading, router]);
 

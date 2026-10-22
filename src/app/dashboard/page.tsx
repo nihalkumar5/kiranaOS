@@ -80,12 +80,8 @@ export default function DashboardPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (user.role !== 'ADMIN') {
-        router.push('/pos');
-      }
+    if (!authLoading && user && user.role !== 'ADMIN') {
+      router.push('/pos');
     }
   }, [user, authLoading, router]);
 

@@ -155,6 +155,20 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // 5. If PaymentMode is CREDIT, record in CreditTransaction
+      if (paymentMode === 'CREDIT' && finalCustomerId) {
+        await tx.creditTransaction.create({
+          data: {
+            storeId: user.storeId,
+            customerId: finalCustomerId,
+            orderId: createdOrder.id,
+            type: 'GIVE_CREDIT',
+            amount: parseFloat(totalAmount),
+            description: `POS Bill #${billNumber}`,
+          },
+        });
+      }
+
       return createdOrder;
     });
 

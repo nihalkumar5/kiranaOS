@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import VoicePriceUpdater from "@/components/VoicePriceUpdater";
 
 export const metadata: Metadata = {
   title: "KiranaOS - POS and Inventory OS",
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-slate-950 text-slate-100 font-sans">
         <AuthProvider>
           {children}
+          <VoicePriceUpdater />
         </AuthProvider>
       </body>
     </html>

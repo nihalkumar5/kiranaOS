@@ -22,17 +22,58 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Make placeholders darker and more visible */
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dark mode scrollbar */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+}
+
+/* Make placeholders visible and clean */
 ::placeholder {
   color: #94a3b8 !important;
   opacity: 1 !important;
 }
 
-/* Ensure all input values are clearly visible and dark */
+/* Ensure all input values are clearly visible and legible */
 input, select, textarea {
-  color: #0f172a !important;
-  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Thermal Printer & Statement Print Optimizations */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  aside, nav, .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
 }

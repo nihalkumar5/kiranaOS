@@ -18,13 +18,14 @@ interface Store {
   phone?: string | null;
   address?: string | null;
   gstin?: string | null;
+  upiId?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   store: Store | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email?: string, password?: string) => Promise<void>;
   registerStore: (storeName: string, name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -39,8 +40,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    // Check local storage for session
-    const loadSession = () => {
+    // Check local storage for session or auto-login default user
+    const loadSession = async () => {
       try {
         const storedUser = localStorage.getItem('kos_user');
         const storedStore = localStorage.getItem('kos_store');
@@ -49,9 +50,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedUser && storedStore && token) {
           setUser(JSON.parse(storedUser));
           setStore(JSON.parse(storedStore));
+        } else {
+          // Auto-login default account
+          const response = await api.post('/auth/login', {});
+          const { user: loggedUser, store: loggedStore, accessToken, refreshToken } = response.data.data;
+
+          localStorage.setItem('kos_access_token', accessToken);
+          localStorage.setItem('kos_refresh_token', refreshToken);
+          localStorage.setItem('kos_user', JSON.stringify(loggedUser));
+          localStorage.setItem('kos_store', JSON.stringify(loggedStore));
+
+          setUser(loggedUser);
+          setStore(loggedStore);
         }
       } catch (e) {
-        console.error('Failed to load session', e);
+        console.error('Failed to load session, setting default store', e);
+        const fallbackUser: User = {
+          id: 'b8ad0af2-1749-4aa4-9a1e-7776d2c5a125',
+          name: 'Nihal Kumar',
+          email: 'Nihal88758@gmail.com',
+          role: 'ADMIN',
+          storeId: '758e50e6-a48e-4334-9669-c0aef9bb45f4',
+        };
+        const fallbackStore: Store = {
+          id: '758e50e6-a48e-4334-9669-c0aef9bb45f4',
+          name: 'Ramprasad Kirana Store',
+        };
+        setUser(fallbackUser);
+        setStore(fallbackStore);
       } finally {
         setLoading(false);
       }
@@ -60,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadSession();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email?: string, password?: string) => {
     setLoading(true);
     try {
       const response = await api.post('/auth/login', { email, password });
@@ -74,8 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(loggedUser);
       setStore(loggedStore);
       
-      // Redirect to POS/Dashboard
-      router.push('/dashboard');
+      // Redirect to POS
+      router.push('/pos');
     } catch (error: any) {
       const message = error.response?.data?.message || 'Login failed';
       throw new Error(message);

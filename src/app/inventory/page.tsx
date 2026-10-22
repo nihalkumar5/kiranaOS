@@ -104,22 +104,22 @@ export default function InventoryPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect non-admins or unauthenticated
+  // Redirect non-admins
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push('/login');
-      } else if (user.role !== 'ADMIN') {
-        router.push('/pos');
-      }
+    if (!authLoading && user && user.role !== 'ADMIN') {
+      router.push('/pos');
     }
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (user && user.role === 'ADMIN') {
+    fetchInventoryData();
+
+    const handleVoiceUpdate = () => {
       fetchInventoryData();
-    }
-  }, [user]);
+    };
+    window.addEventListener('kiranaos:product-updated', handleVoiceUpdate);
+    return () => window.removeEventListener('kiranaos:product-updated', handleVoiceUpdate);
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });

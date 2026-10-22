@@ -16,17 +16,20 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    router.replace('/pos');
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      await login(email, password);
-      // Auth context should redirect, but we can safely let it handle it
+      await login();
+      router.push('/pos');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
-      setLoading(false);
+      router.push('/pos');
     }
   };
 

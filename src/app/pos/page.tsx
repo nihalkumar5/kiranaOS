@@ -9,6 +9,7 @@ import { io } from 'socket.io-client';
 import Logo from '@/components/Logo';
 import Sidebar from '@/components/Sidebar';
 import { motion, AnimatePresence } from 'framer-motion';
+import QRCode from 'qrcode';
 import {
   Scan,
   User,
@@ -28,8 +29,12 @@ import {
   XCircle,
   X,
   Sparkles,
-  ShoppingBag, Zap,
-  Users
+  ShoppingBag,
+  Zap,
+  Users,
+  QrCode as QrCodeIcon,
+  Check,
+  Receipt
 } from 'lucide-react';
 
 interface Product {
@@ -58,6 +63,8 @@ interface Customer {
   id: string;
   name: string;
   mobile: string;
+  creditBalance?: number;
+  creditLimit?: number;
 }
 
 interface OnlineOrder {
@@ -112,7 +119,10 @@ export default function PosPage() {
   // Input states
   const [searchQuery, setSearchQuery] = useState('');
   const [discount, setDiscount] = useState<number>(0);
-  const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'CARD' | 'MIXED'>('CASH');
+  const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'CARD' | 'MIXED' | 'CREDIT'>('CASH');
+  const [upiQrDataUrl, setUpiQrDataUrl] = useState<string | null>(null);
+  const [cashTendered, setCashTendered] = useState<number | null>(null);
+  const [heldCarts, setHeldCarts] = useState<Array<{ id: string; time: string; customerName?: string; cart: Record<string, CartItem>; total: number }>>([]);
 
   // Customer states
   const [customerMobile, setCustomerMobile] = useState('');
@@ -168,20 +178,24 @@ export default function PosPage() {
   const [searchSelectedIndex, setSearchSelectedIndex] = useState(-1);
 
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, authLoading, router]);
-
   // Load products list for grid selection
   useEffect(() => {
-    if (user) {
-      fetchProducts();
-      fetchOnlineOrders();
-    }
-  }, [user]);
+    fetchProducts();
+    fetchOnlineOrders();
+
+    const handleVoiceUpdate = (e: any) => {
+      const updated = e.detail;
+      if (updated && updated.id) {
+        setProductsList((prev: Product[]) =>
+          prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+        );
+      } else {
+        fetchProducts();
+      }
+    };
+    window.addEventListener('kiranaos:product-updated', handleVoiceUpdate);
+    return () => window.removeEventListener('kiranaos:product-updated', handleVoiceUpdate);
+  }, []);
 
   // Persistent focus on barcode input
   useEffect(() => {
@@ -241,33 +255,124 @@ export default function PosPage() {
     return () => window.removeEventListener('click', handleGlobalClick);
   }, []);
 
+  const cartTotals = useMemo(() => {
+    let subtotal = 0; 
+    let totalTax = 0; 
+    let totalItemsPrice = 0; 
+    let itemCount = 0;
+    let totalMrp = 0;
+
+    Object.values(cart).forEach(({ product, quantity }) => {
+      const price = Number(product.sellingPrice);
+      const gstRate = Number(product.gst);
+      const mrp = Math.max(Number(product.purchasePrice || 0), Math.ceil((price * 1.25)/10)*10);
+
+      const itemTotal = price * quantity;
+      const basePrice = price / (1 + gstRate / 100);
+      const itemGst = (price - basePrice) * quantity;
+      const itemSubtotal = itemTotal - itemGst;
+
+      subtotal += itemSubtotal;
+      totalTax += itemGst;
+      totalItemsPrice += itemTotal;
+      totalMrp += mrp * quantity;
+      itemCount += quantity;
+    });
+
+    const finalTotal = Math.max(0, totalItemsPrice - discount);
+    const totalSavings = Math.max(0, totalMrp - finalTotal);
+
+    return {
+      subtotal,
+      totalTax,
+      totalItemsPrice,
+      totalMrp,
+      totalSavings,
+      finalTotal,
+      itemCount
+    };
+  }, [cart, discount]);
+
+  // Generate Dynamic UPI QR Code for instant counter scanning
+  useEffect(() => {
+    if (paymentMode === 'UPI' && cartTotals.finalTotal > 0) {
+      const upiId = store?.upiId || 'kiranaos@okhdfcbank';
+      const storeName = store?.name || 'Kirana Store';
+      const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(storeName)}&am=${cartTotals.finalTotal.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Bill Payment')}`;
+      QRCode.toDataURL(upiUrl, { width: 220, margin: 1, color: { dark: '#000000', light: '#ffffff' } })
+        .then((url) => setUpiQrDataUrl(url))
+        .catch((e) => console.error('QR code generation error', e));
+    } else {
+      setUpiQrDataUrl(null);
+    }
+  }, [paymentMode, cartTotals.finalTotal, store]);
+
+  // Voice Billing (Add to Cart from Voice AI) listener
+  useEffect(() => {
+    const handleVoiceAddToCart = (event: any) => {
+      const { product, quantity = 1 } = event.detail || {};
+      if (!product) return;
+      const key = product.barcode || product.id;
+      setCart((prevCart) => {
+        const existing = prevCart[key];
+        playSuccessSound();
+        if (existing) {
+          return {
+            ...prevCart,
+            [key]: { ...existing, quantity: existing.quantity + quantity },
+          };
+        } else {
+          return {
+            ...prevCart,
+            [key]: { product, quantity },
+          };
+        }
+      });
+      setIsBillMode(true);
+      showToast(`🛒 ${quantity}x ${product.name} bill cart me jod diya!`, 'success');
+    };
+
+    window.addEventListener('kirana_add_to_cart', handleVoiceAddToCart as any);
+    return () => window.removeEventListener('kirana_add_to_cart', handleVoiceAddToCart as any);
+  }, []);
+
   // Keyboard shortcuts listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'F2') {
         e.preventDefault();
-        setSearchQuery('');
-        setShowSearchDropdown(false);
-        if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
-        showToast('Input refocused', 'success');
+        searchInputRef.current?.focus();
+        showToast('Search & Barcode Focused [F2]', 'success');
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        setShowCustomerModal(true);
       } else if (e.key === 'F8') {
         e.preventDefault();
         discountInputRef.current?.focus();
       } else if (e.key === 'F9') {
         e.preventDefault();
-        const modes: ('CASH' | 'UPI' | 'CARD' | 'MIXED')[] = ['CASH', 'UPI', 'CARD', 'MIXED'];
-        const nextIndex = (modes.indexOf(paymentMode) + 1) % modes.length;
-        setPaymentMode(modes[nextIndex]);
-        showToast(`Payment Mode: ${modes[nextIndex]}`, 'success');
+        setPaymentMode('CASH');
+        showToast('Payment Mode: CASH [F9]', 'success');
+      } else if (e.key === 'F10') {
+        e.preventDefault();
+        setPaymentMode('UPI');
+        showToast('Payment Mode: UPI QR [F10]', 'success');
       } else if (e.key === 'F12') {
         e.preventDefault();
         handleCheckout();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setSearchQuery('');
+        setShowSearchDropdown(false);
+        setShowCustomerModal(false);
+        setCashTendered(null);
+        if (typeof window !== "undefined" && window.innerWidth >= 768) { searchInputRef.current?.focus(); }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, paymentMode, discount, customer]);
+  }, [cart, paymentMode, discount, customer, cartTotals]);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -505,49 +610,20 @@ export default function PosPage() {
     }
   };
 
-  const cartTotals = useMemo(() => {
-    let subtotal = 0; 
-    let totalTax = 0; 
-    let totalItemsPrice = 0; 
-    let itemCount = 0;
-    let totalMrp = 0;
 
-    Object.values(cart).forEach(({ product, quantity }) => {
-      const price = Number(product.sellingPrice);
-      const gstRate = Number(product.gst);
-      const mrp = Math.max(Number(product.purchasePrice || 0), Math.ceil((price * 1.25)/10)*10);
-
-      const itemTotal = price * quantity;
-      const basePrice = price / (1 + gstRate / 100);
-      const itemGst = (price - basePrice) * quantity;
-      const itemSubtotal = itemTotal - itemGst;
-
-      subtotal += itemSubtotal;
-      totalTax += itemGst;
-      totalItemsPrice += itemTotal;
-      totalMrp += mrp * quantity;
-      itemCount += quantity;
-    });
-
-    const finalTotal = Math.max(0, totalItemsPrice - discount);
-    const totalSavings = Math.max(0, totalMrp - finalTotal);
-
-    return {
-      subtotal,
-      totalTax,
-      totalItemsPrice,
-      totalMrp,
-      totalSavings,
-      finalTotal,
-      itemCount
-    };
-  }, [cart, discount]);
 
   const handleCheckout = async () => {
     const cartItemsList = Object.values(cart);
     if (cartItemsList.length === 0) {
       showToast('Cart is empty', 'error');
       playErrorSound();
+      return;
+    }
+
+    if (paymentMode === 'CREDIT' && !customer && !customerMobile) {
+      showToast('Udhaar ke liye Customer mobile zaroori hai!', 'error');
+      playErrorSound();
+      setShowCustomerModal(true);
       return;
     }
 
@@ -1250,6 +1326,21 @@ const isOutOfStock = false; // ALLOW NEGATIVE STOCK
                   className="bg-gray-50 border border-gray-200 focus:border-[#059669] rounded-lg px-3 py-2.5 text-[12px] text-gray-900 focus:outline-none transition-all placeholder-gray-400 disabled:bg-gray-100 disabled:text-gray-500"
                 />
               </div>
+              {customer && customer.creditBalance !== undefined && customer.creditBalance > 0 && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between">
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-wider text-rose-500 font-extrabold">Purana Udhaar (Credit)</span>
+                    <span className="text-sm font-black">₹{customer.creditBalance}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/credit')}
+                    className="bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow-sm cursor-pointer"
+                  >
+                    Khata Dekhein
+                  </button>
+                </div>
+              )}
               {customer === null && (
                 <button
                   type="button"
@@ -1380,31 +1471,198 @@ const isOutOfStock = false; // ALLOW NEGATIVE STOCK
 
             {/* Checkout Bottom Panel (Now flows with content) */}
             {Object.keys(cart).length > 0 && (
-              <div className="bg-white border border-gray-200 p-4 rounded-[16px] shadow-sm z-10 mt-4">
-                <div className="flex gap-1 mb-4 bg-gray-900 p-1.5 rounded-xl shadow-inner relative overflow-hidden">
-                  {['CASH', 'UPI', 'CARD'].map((mode) => (
+              <div className="bg-white border border-gray-200 p-4 rounded-[16px] shadow-sm z-10 mt-4 space-y-4">
+                {/* Payment Mode Selector Tabs */}
+                <div className="flex gap-1 bg-gray-900 p-1.5 rounded-xl shadow-inner relative overflow-hidden">
+                  {['CASH', 'UPI', 'CARD', 'CREDIT'].map((mode) => (
                     <button
                       key={mode}
-                      onClick={() => setPaymentMode(mode as any)}
-                      className={`relative flex-1 py-2.5 rounded-lg font-bold text-[12px] tracking-wider transition-all duration-300 z-10 ${
+                      onClick={() => {
+                        setPaymentMode(mode as any);
+                        setCashTendered(null);
+                      }}
+                      className={`relative flex-1 py-2.5 rounded-lg font-bold text-[11px] tracking-wider transition-all duration-300 z-10 ${
                         paymentMode === mode 
-                          ? 'text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] bg-emerald-500 scale-[1.02]' 
+                          ? mode === 'CREDIT'
+                            ? 'text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] bg-rose-600 scale-[1.02]'
+                            : 'text-white shadow-[0_0_20px_rgba(16,185,129,0.5)] bg-emerald-500 scale-[1.02]' 
                           : 'text-gray-400 hover:text-white hover:bg-gray-800'
                       }`}
                     >
-                      {mode}
+                      {mode === 'CREDIT' ? 'UDHAAR' : mode}
                     </button>
                   ))}
                 </div>
-                
-                <button
-                  onClick={handleCheckout}
-                  disabled={checkingOut || cartTotals.itemCount === 0}
-                  className="w-full bg-[#059669] active:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 text-white font-bold py-3.5 rounded-xl text-[14px] transition-all flex items-center justify-between px-5 shadow-sm"
-                >
-                  <span>₹{cartTotals.finalTotal.toFixed(0)}</span>
-                  <span className="flex items-center gap-1">Place Order [F12] <ArrowRight className="w-4 h-4" /></span>
-                </button>
+
+                {/* 1. DYNAMIC UPI QR CODE PANEL */}
+                {paymentMode === 'UPI' && (
+                  <div className="p-3.5 bg-slate-950 rounded-2xl border border-emerald-500/30 text-white flex items-center gap-3.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="bg-white p-1.5 rounded-xl shrink-0 shadow-md">
+                      {upiQrDataUrl ? (
+                        <img src={upiQrDataUrl} alt="UPI QR" className="w-20 h-20 rounded-lg object-contain" />
+                      ) : (
+                        <div className="w-20 h-20 flex items-center justify-center bg-slate-100 rounded-lg">
+                          <QrCodeIcon className="w-8 h-8 text-slate-800" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Scan & Pay (Auto ₹{cartTotals.finalTotal.toFixed(0)})
+                      </span>
+                      <p className="text-base font-black text-white m-0 mt-0.5">
+                        ₹{cartTotals.finalTotal.toFixed(0)}
+                      </p>
+                      <p className="text-[11px] text-slate-400 truncate m-0 font-medium">
+                        {store?.upiId || 'Counter UPI QR'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. CASH DENOMINATIONS & CHANGE CALCULATOR */}
+                {paymentMode === 'CASH' && (
+                  <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                      <span>Customer Se Mila (Cash Given):</span>
+                      <span className="font-mono text-slate-900">
+                        {cashTendered ? `₹${cashTendered}` : '₹' + cartTotals.finalTotal.toFixed(0)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                      {[100, 200, 500].map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setCashTendered(amt)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                            cashTendered === amt
+                              ? 'bg-emerald-600 text-white font-black'
+                              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          ₹{amt}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setCashTendered(cartTotals.finalTotal)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          cashTendered === cartTotals.finalTotal
+                            ? 'bg-emerald-600 text-white font-black'
+                            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        Exact
+                      </button>
+                    </div>
+
+                    {cashTendered !== null && cashTendered > cartTotals.finalTotal && (
+                      <div className="p-2 bg-emerald-100/80 border border-emerald-300 rounded-xl flex items-center justify-between text-xs font-black text-emerald-950">
+                        <span>Wapas Karein (Return Change):</span>
+                        <span className="text-sm font-mono font-black text-emerald-800">
+                          ₹{(cashTendered - cartTotals.finalTotal).toFixed(0)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. UDHAAR / CREDIT KHATA BANNER */}
+                {paymentMode === 'CREDIT' && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
+                    {customer ? (
+                      <div>
+                        <div className="flex items-center justify-between text-xs font-black text-rose-900">
+                          <span>Grahak: {customer.name}</span>
+                          <span>Purana Udhaar: ₹{customer.creditBalance || 0}</span>
+                        </div>
+                        <p className="text-[11px] text-rose-700 font-medium m-0 mt-0.5">
+                          Yeh bill grahak ke khate me udhaar darj ho jayega.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-1">
+                        <p className="text-xs font-bold text-rose-800 m-0">
+                          ⚠️ Udhaar ke liye customer select karein
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomerModal(true)}
+                          className="mt-1 text-xs font-black text-rose-900 underline"
+                        >
+                          Grahak Chunein ya Naya Add Karein
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Checkout & Hold Action Row */}
+                <div className="flex items-center gap-2">
+                  {/* Hold / Park Bill Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newHeld = {
+                        id: 'hold_' + Date.now(),
+                        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+                        customerName: customerName || customer?.name || 'Walk-in',
+                        cart: { ...cart },
+                        total: cartTotals.finalTotal,
+                      };
+                      setHeldCarts((prev) => [newHeld, ...prev]);
+                      setCart({});
+                      playSuccessSound();
+                      showToast('Bill park / hold ho gaya! Naya customer handle karein.', 'success');
+                    }}
+                    title="Customer ko hold karein aur doosre ko serve karein"
+                    className="p-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors shrink-0 flex items-center gap-1.5"
+                  >
+                    <span>Hold [F8]</span>
+                  </button>
+
+                  {/* Main Place Order Button */}
+                  <button
+                    onClick={handleCheckout}
+                    disabled={checkingOut || cartTotals.itemCount === 0}
+                    className="flex-1 bg-[#059669] hover:bg-emerald-700 active:bg-green-800 disabled:bg-gray-300 disabled:text-gray-500 text-white font-black py-3.5 rounded-xl text-[14px] transition-all flex items-center justify-between px-5 shadow-sm"
+                  >
+                    <span>₹{cartTotals.finalTotal.toFixed(0)}</span>
+                    <span className="flex items-center gap-1">
+                      Place Order [F12] <ArrowRight className="w-4 h-4" />
+                    </span>
+                  </button>
+                </div>
+
+                {/* Held Carts Bar (if any held) */}
+                {heldCarts.length > 0 && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1.5">
+                      Held / Parked Bills ({heldCarts.length}):
+                    </p>
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                      {heldCarts.map((h, i) => (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() => {
+                            setCart(h.cart);
+                            setHeldCarts((prev) => prev.filter((_, idx) => idx !== i));
+                            playSuccessSound();
+                            showToast(`Held bill (${h.customerName}) resume ho gaya!`, 'success');
+                          }}
+                          className="px-2.5 py-1.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs font-bold hover:bg-amber-100 flex items-center gap-1.5 shrink-0"
+                        >
+                          <span>{h.customerName}</span>
+                          <span className="font-mono font-black">₹{h.total.toFixed(0)}</span>
+                          <span className="text-[10px] text-amber-700">({h.time})</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

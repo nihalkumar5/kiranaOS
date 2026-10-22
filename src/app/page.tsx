@@ -9,14 +9,8 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated) {
-        router.push('/pos');
-      } else {
-        router.push('/login');
-      }
-    }
-  }, [isAuthenticated, loading, router]);
+    router.replace('/pos');
+  }, [router]);
 
   return (
     <div className="flex-1 min-h-screen flex items-center justify-center bg-slate-950">

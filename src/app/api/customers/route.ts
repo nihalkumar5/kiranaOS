@@ -10,25 +10,39 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const mobile = searchParams.get('mobile') || searchParams.get('q');
 
-    if (mobile) {
-      const customers = await prisma.customer.findMany({
-        where: {
-          storeId: user.storeId,
-          mobile: { contains: mobile.trim() },
-        },
-        take: 10,
-        orderBy: { updatedAt: 'desc' },
-      });
-      return NextResponse.json({ success: true, data: customers });
-    }
-
     const customers = await prisma.customer.findMany({
-      where: { storeId: user.storeId },
-      take: 50,
+      where: {
+        storeId: user.storeId,
+        ...(mobile ? { mobile: { contains: mobile.trim() } } : {}),
+      },
+      include: {
+        creditTransactions: {
+          select: { type: true, amount: true },
+        },
+      },
+      take: 25,
       orderBy: { updatedAt: 'desc' },
     });
 
-    return NextResponse.json({ success: true, data: customers });
+    const enriched = customers.map((c) => {
+      let bal = 0;
+      c.creditTransactions?.forEach((t) => {
+        if (t.type === 'GIVE_CREDIT') bal += Number(t.amount);
+        else if (t.type === 'PAYMENT_RECEIVED') bal -= Number(t.amount);
+      });
+      return {
+        id: c.id,
+        name: c.name,
+        mobile: c.mobile,
+        creditLimit: Number(c.creditLimit),
+        creditBalance: Math.round(bal * 100) / 100,
+        storeId: c.storeId,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      };
+    });
+
+    return NextResponse.json({ success: true, data: enriched });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch customers' },

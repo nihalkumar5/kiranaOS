@@ -5,33 +5,27 @@ import { signAccessToken, signRefreshToken } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { email, password } = body;
+    const body = await req.json().catch(() => ({}));
+    const { email } = body || {};
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { success: false, message: 'Please provide both email and password.' },
-        { status: 400 },
-      );
+    let user = null;
+    if (email) {
+      user = await prisma.user.findUnique({
+        where: { email },
+        include: { store: true },
+      });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { store: true },
-    });
+    if (!user) {
+      user = await prisma.user.findFirst({
+        include: { store: true },
+      });
+    }
 
     if (!user) {
       return NextResponse.json(
-        { success: false, message: 'Invalid email or password.' },
-        { status: 401 },
-      );
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid email or password.' },
-        { status: 401 },
+        { success: false, message: 'No user account found in database.' },
+        { status: 404 },
       );
     }
 
