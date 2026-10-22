@@ -576,8 +576,8 @@ export default function VoicePriceUpdater() {
 
   return (
     <>
-      {/* ─── FLOATING ACTION BUTTON (ALWAYS VISIBLE BOTTOM-RIGHT) ─── */}
-      <div className="fixed bottom-6 right-6 z-[80] flex items-center gap-2">
+      {/* ─── FLOATING ACTION BUTTON (DOCKED SAFELY AWAY FROM CART) ─── */}
+      <div className="fixed bottom-6 right-6 lg:right-[430px] z-[80] flex items-center gap-2">
         <button
           onClick={() => setIsOpen((prev) => !prev)}
           className="group relative flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-3.5 rounded-full shadow-2xl shadow-emerald-950/60 border border-emerald-400/30 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer font-bold select-none"

@@ -725,25 +725,17 @@ export default function PosPage() {
           </div>
         )}
 
-        {/* BLINKIT TOP BAR */}
+        {/* BLINKIT POS TOP BAR */}
         <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 z-30 no-print shadow-xs">
-          {/* Logo & Delivery Time Pill */}
-          <div className="flex items-center gap-4 shrink-0">
-            {/* Blinkit Inspired Logo */}
-            <div className="flex items-center gap-1.5 cursor-pointer" onClick={() => setSelectedCategory('ALL')}>
-              <div className="bg-[#F8CB46] text-black font-black text-xl tracking-tighter px-2.5 py-1 rounded-xl shadow-xs">
-                kirana<span className="text-[#0C831F]">os</span>
-              </div>
-            </div>
-
-            {/* Delivery in 10 minutes Pill */}
-            <div className="hidden sm:flex flex-col border-l border-gray-200 pl-4 leading-tight">
-              <span className="text-xs font-black text-gray-900 flex items-center gap-1">
-                <Bike className="w-3.5 h-3.5 text-[#0C831F]" /> Delivery in 10 minutes
+          {/* Store Status Pill */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 bg-[#f4f6f8] px-3 py-1.5 rounded-xl border border-gray-200">
+              <span className="w-2 h-2 rounded-full bg-[#0C831F] animate-pulse" />
+              <span className="text-xs font-bold text-gray-900 truncate max-w-[180px]">
+                {store?.name || 'Counter 01'}
               </span>
-              <span className="text-[11px] text-gray-500 truncate max-w-[160px] font-medium">
-                {store?.name || 'Counter 01, Main Market'}
-              </span>
+              <span className="text-gray-300">|</span>
+              <span className="text-[11px] font-mono font-bold text-gray-500 uppercase">POS Terminal</span>
             </div>
           </div>
 
@@ -901,19 +893,19 @@ export default function PosPage() {
               )}
             </button>
 
-            {/* THE FAMOUS BLINKIT GREEN CART BUTTON */}
+            {/* Mobile Cart Trigger / Toggle when Drawer closed */}
             <button
               onClick={() => setShowCartDrawer(!showCartDrawer)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0C831F] hover:bg-[#0a6d1a] active:bg-[#085a15] text-white rounded-xl text-xs font-black shadow-md shadow-green-900/10 transition-all cursor-pointer select-none"
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer select-none ${
+                showCartDrawer
+                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
+                  : 'bg-[#0C831F] hover:bg-[#0a6d1a] text-white shadow-md'
+              }`}
             >
               <ShoppingCart className="w-4 h-4 stroke-[2.5]" />
-              <div className="flex flex-col text-left leading-tight">
-                <span className="text-[10px] uppercase font-bold text-green-200">
-                  {cartTotals.itemCount} Items
-                </span>
-                <span className="text-xs font-mono font-black">
-                  ₹{cartTotals.finalTotal.toFixed(0)}
-                </span>
+              <div className="flex items-center gap-1.5 leading-tight">
+                <span>{showCartDrawer ? 'Hide Cart' : 'View Cart'}</span>
+                <span className="font-mono font-bold">({cartTotals.itemCount})</span>
               </div>
             </button>
           </div>
@@ -950,25 +942,7 @@ export default function PosPage() {
 
           {/* 2. CENTER PRODUCT CATALOG FEED */}
           <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-[#f4f6f8]">
-            {/* Promo Header Strip (Blinkit style promo banner) */}
-            <div className="mb-5 bg-gradient-to-r from-[#F8CB46] via-[#FFD23F] to-[#fde047] rounded-2xl p-4 lg:p-5 flex items-center justify-between shadow-xs border border-yellow-300/60 relative overflow-hidden">
-              <div className="relative z-10">
-                <span className="bg-black text-[#F8CB46] text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider mb-1.5 inline-block">
-                  ⚡ Express Kirana Counter
-                </span>
-                <h2 className="text-lg lg:text-xl font-black text-gray-900 tracking-tight leading-tight">
-                  Taaza Groceries & Daily Needs in 10 Mins
-                </h2>
-                <p className="text-xs font-semibold text-gray-800 mt-0.5">
-                  Scan any barcode or tap below to instantly bill items.
-                </p>
-              </div>
-              <div className="hidden sm:block text-4xl pr-4">
-                🛒🥛🍞
-              </div>
-            </div>
-
-            {/* Category Title & Product Count */}
+            {/* Category Title & Product Count (Clean Header without redundant banners) */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
                 <span>{CATEGORY_ITEMS.find((c) => c.id === selectedCategory)?.name || 'Products'}</span>
@@ -1008,10 +982,14 @@ export default function PosPage() {
                       layout
                       className="bg-white rounded-2xl border border-gray-200/90 hover:border-gray-300 p-3 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-200 group relative"
                     >
-                      {/* Top: 10 MINS Pill & Discount Pill */}
+                      {/* Top: Stock Status & Discount Pill (No 10 MINS tag) */}
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-black bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                          <Clock className="w-2.5 h-2.5 text-[#0C831F]" /> 10 MINS
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                          Number(p.stock) <= 5
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200/60 font-black'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {Number(p.stock) <= 5 ? `Low (${p.stock})` : `Stock: ${p.stock}`}
                         </span>
 
                         {discountPercent > 0 && (
@@ -1132,19 +1110,6 @@ export default function PosPage() {
                   </div>
                 </div>
 
-                {/* Delivery in 10 mins Banner */}
-                <div className="bg-[#e9f7ec] p-3 mx-4 mt-3 rounded-2xl flex items-center justify-between border border-green-200/60">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#0C831F] text-white flex items-center justify-center font-bold">
-                      <Bike className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-xs font-black text-gray-900 block leading-tight">Delivery in 10 minutes</span>
-                      <span className="text-[10px] text-gray-500">Shipment of {cartTotals.itemCount} items</span>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Customer Attachment Box */}
                 <div className="mx-4 mt-3 p-3 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1160,7 +1125,7 @@ export default function PosPage() {
                   </div>
                   <button
                     onClick={() => setShowCustomerModal(true)}
-                    className="text-xs font-bold text-[#0C831F] hover:underline"
+                    className="text-xs font-bold text-[#0C831F] hover:underline cursor-pointer"
                   >
                     {customer ? 'Change' : '+ Grahak [F4]'}
                   </button>
@@ -1241,20 +1206,16 @@ export default function PosPage() {
                   <div className="p-4 bg-gray-50 border-t border-gray-200 space-y-3 shrink-0">
                     <div className="space-y-1.5 text-xs text-gray-600">
                       <div className="flex justify-between">
-                        <span>Items Total</span>
+                        <span>Items Subtotal</span>
                         <span className="font-mono">₹{cartTotals.subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Delivery Charge</span>
-                        <span className="text-[#0C831F] font-bold">FREE</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Handling Fee</span>
-                        <span className="font-mono">₹0</span>
+                        <span>GST (Included)</span>
+                        <span className="font-mono">₹{cartTotals.totalTax.toFixed(2)}</span>
                       </div>
                       {discount > 0 && (
                         <div className="flex justify-between text-[#0C831F] font-bold">
-                          <span>Discount Applied</span>
+                          <span>Discount Applied [F8]</span>
                           <span className="font-mono">-₹{discount.toFixed(2)}</span>
                         </div>
                       )}
