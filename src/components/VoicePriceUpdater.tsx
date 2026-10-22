@@ -118,6 +118,40 @@ interface ChatMessage {
   }>;
 }
 
+function FormattedMessageText({ text }: { text: string }) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return (
+    <div className="space-y-1 text-inherit">
+      {lines.map((line, idx) => {
+        if (!line.trim()) return <div key={idx} className="h-1" />;
+        const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g);
+        return (
+          <p key={idx} className="leading-relaxed">
+            {parts.map((part, pIdx) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return (
+                  <strong key={pIdx} className="font-bold text-inherit">
+                    {part.slice(2, -2)}
+                  </strong>
+                );
+              }
+              if (part.startsWith('*') && part.endsWith('*')) {
+                return (
+                  <span key={pIdx} className="italic text-inherit opacity-85">
+                    {part.slice(1, -1)}
+                  </span>
+                );
+              }
+              return part;
+            })}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function VoicePriceUpdater() {
   const [isOpen, setIsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -138,7 +172,7 @@ export default function VoicePriceUpdater() {
     {
       id: 'welcome',
       sender: 'ai',
-      text: '🙏 **नमस्ते जी! मैं आपका किराना AI सहायक हूँ।**\n\nआप बोलकर या लिखकर:\n• **दाम व स्टॉक** बदल सकते हैं ("टाटा नमक बिक्री 28 खरीद 22")\n• **नया सामान** जोड़ सकते हैं ("कुरकुरे ग्रीन 20 पैकेट ऐड करो")\n• **उधार खाता** दर्ज कर सकते हैं ("रमेश को 200 का उधार लिखो")\n• **पेमेंट जमा** कर सकते हैं ("रमेश ने 200 जमा किया")\n• **WhatsApp रिमाइंडर** भेज सकते हैं ("रमेश को रिमाइंडर भेजो")\n• **आज की बिक्री व कुल उधार** पूछ सकते हैं ("आज की बिक्री कितनी है?")\n\n*माइक दबाकर बोलें या नीचे लिखें।*',
+      text: '🙏 नमस्ते जी! मैं आपका किराना AI सहायक हूँ। दाम, नया सामान, या उधार खाता बोलकर या लिखकर संभालें।',
       timestamp: 'अभी',
       type: 'TEXT',
     },
@@ -604,158 +638,206 @@ export default function VoicePriceUpdater() {
 
       {/* ─── COPILOT DRAWER (RIGHT SIDE SLIDE-OUT) ─── */}
       {isOpen && (
-        <div className="fixed inset-y-0 right-0 z-[100] w-full sm:w-[460px] bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-100 animate-in slide-in-from-right duration-300">
-          
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-900/40">
-                <Sparkles className="w-5 h-5 text-emerald-100" />
-                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-slate-900" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                  KiranaOS AI Copilot
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    Live
-                  </span>
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium">वॉइस + चैट से खरीद, बिक्री व स्टॉक बदलें</p>
-              </div>
-            </div>
+        <>
+          {/* Subtle Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/25 backdrop-blur-[2px] z-[99] transition-opacity"
+            onClick={() => setIsOpen(false)}
+          />
 
-            {/* Actions: Lang toggle, Voice output toggle, Close */}
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setLanguage((prev) => (prev === 'hi-IN' ? 'en-IN' : 'hi-IN'))}
-                className="text-xs px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold border border-slate-700 transition-colors"
-                title="भाषा बदलें"
-              >
-                {language === 'hi-IN' ? '🇮🇳 हिन्दी' : '🌐 Hinglish'}
-              </button>
-
-              <button
-                onClick={() => setVoiceOutputEnabled((prev) => !prev)}
-                className={`p-1.5 rounded-lg border transition-colors ${
-                  voiceOutputEnabled
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                    : 'bg-slate-800 text-slate-500 border-slate-700'
-                }`}
-                title={voiceOutputEnabled ? 'आवाज़ चालू है (Mute करें)' : 'आवाज़ बंद है (Unmute करें)'}
-              >
-                {voiceOutputEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </button>
-
-              <button
-                onClick={() => setMessages([messages[0]])}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors"
-                title="चैट साफ़ करें"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                title="बंद करें (Esc)"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Suggestion Pills */}
-          <div className="px-4 py-2 border-b border-slate-800/80 bg-slate-900/50 flex gap-1.5 overflow-x-auto scrollbar-none text-xs">
-            {sampleSuggestions.map((sug, i) => (
-              <button
-                key={i}
-                onClick={() => handleSendMessage(sug)}
-                className="shrink-0 px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/60 font-medium transition-colors hover:text-emerald-300 cursor-pointer"
-              >
-                {sug}
-              </button>
-            ))}
-          </div>
-
-          {/* Message Stream */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
-              >
-                {/* Sender Pill */}
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-1 px-1 font-semibold">
-                  {msg.sender === 'user' ? (
-                    <>
-                      <span>{msg.timestamp}</span>
-                      {msg.isVoice ? (
-                        <span className="flex items-center gap-0.5 text-emerald-400">
-                          <Mic className="w-3 h-3" /> बोला गया
-                        </span>
-                      ) : (
-                        <span>टाइप किया</span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3 h-3 text-emerald-400" />
-                      <span>Kirana AI</span>
-                      <span>•</span>
-                      <span>{msg.timestamp}</span>
-                    </>
-                  )}
+          <div className="fixed inset-y-0 right-0 z-[100] w-full sm:w-[430px] bg-white border-l border-gray-200 shadow-2xl flex flex-col text-slate-900 animate-in slide-in-from-right duration-200">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-xs">
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-1.5">
+                    Kirana AI Copilot
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#0C831F] animate-pulse" />
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium">Voice & Chat Assistant</p>
+                </div>
+              </div>
 
-                {/* Message Bubble */}
-                <div
-                  className={`max-w-[92%] rounded-2xl p-4 text-sm leading-relaxed ${
-                    msg.sender === 'user'
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium rounded-br-xs shadow-md'
-                      : 'bg-slate-850 text-slate-200 border border-slate-800 rounded-bl-xs shadow-md'
-                  }`}
+              {/* Actions: Lang toggle, Voice output toggle, Close */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setLanguage((prev) => (prev === 'hi-IN' ? 'en-IN' : 'hi-IN'))}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200/60 transition-colors cursor-pointer"
+                  title="भाषा बदलें"
                 >
-                  {/* Markdown / Formatted text */}
-                  <div className="whitespace-pre-wrap">{msg.text}</div>
+                  {language === 'hi-IN' ? '🇮🇳 हिन्दी' : '🌐 EN'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setVoiceOutputEnabled((prev) => !prev)}
+                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    voiceOutputEnabled
+                      ? 'bg-emerald-50 text-[#0C831F] border-emerald-200'
+                      : 'bg-slate-100 text-slate-400 border-slate-200'
+                  }`}
+                  title={voiceOutputEnabled ? 'आवाज़ चालू है' : 'आवाज़ बंद है'}
+                >
+                  {voiceOutputEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMessages([messages[0]])}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="चैट साफ़ करें"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer ml-0.5"
+                  title="बंद करें (Esc)"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Message Stream */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50/70">
+              {messages.length === 1 && messages[0].id === 'welcome' ? (
+                <div className="py-8 px-2 flex flex-col items-center text-center animate-in fade-in-50 duration-300">
+                  <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20 mb-3.5">
+                    <Sparkles className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-base font-black text-slate-900 tracking-tight">
+                    नमस्ते! मैं किराना AI हूँ
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 max-w-[280px]">
+                    दाम, नया स्टॉक या उधार खाता बोलकर या लिखकर तुरंत संभालें
+                  </p>
+
+                  {/* 4 Minimal Tap Cards */}
+                  <div className="grid grid-cols-2 gap-2.5 w-full mt-6">
+                    <button
+                      type="button"
+                      onClick={() => handleSendMessage('टाटा नमक बिक्री 28 खरीद 22')}
+                      className="p-3 bg-white hover:bg-emerald-50/80 rounded-2xl border border-slate-200/90 hover:border-emerald-300 text-left transition-all shadow-2xs group cursor-pointer"
+                    >
+                      <span className="text-base mb-1 block">🏷️</span>
+                      <span className="text-xs font-bold text-slate-800 block group-hover:text-[#0C831F]">दाम बदलें</span>
+                      <span className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">"टाटा नमक ₹28"</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSendMessage('कुरकुरे 20 पैकेट नया सामान जोड़ो')}
+                      className="p-3 bg-white hover:bg-emerald-50/80 rounded-2xl border border-slate-200/90 hover:border-emerald-300 text-left transition-all shadow-2xs group cursor-pointer"
+                    >
+                      <span className="text-base mb-1 block">📦</span>
+                      <span className="text-xs font-bold text-slate-800 block group-hover:text-[#0C831F]">नया सामान</span>
+                      <span className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">"कुरकुरे 20 पैकेट"</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSendMessage('रमेश को 200 का उधार लिखो')}
+                      className="p-3 bg-white hover:bg-emerald-50/80 rounded-2xl border border-slate-200/90 hover:border-emerald-300 text-left transition-all shadow-2xs group cursor-pointer"
+                    >
+                      <span className="text-base mb-1 block">📒</span>
+                      <span className="text-xs font-bold text-slate-800 block group-hover:text-[#0C831F]">उधार खाता</span>
+                      <span className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">"रमेश को ₹200"</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSendMessage('आज की कुल बिक्री कितनी हुई?')}
+                      className="p-3 bg-white hover:bg-emerald-50/80 rounded-2xl border border-slate-200/90 hover:border-emerald-300 text-left transition-all shadow-2xs group cursor-pointer"
+                    >
+                      <span className="text-base mb-1 block">📊</span>
+                      <span className="text-xs font-bold text-slate-800 block group-hover:text-[#0C831F]">आज का हिसाब</span>
+                      <span className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">"आज की बिक्री"</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                  >
+                    {/* Sender Pill */}
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-1 px-1 font-semibold">
+                      {msg.sender === 'user' ? (
+                        <>
+                          <span>{msg.timestamp}</span>
+                          {msg.isVoice ? (
+                            <span className="flex items-center gap-0.5 text-emerald-600">
+                              <Mic className="w-3 h-3" /> आवाज़
+                            </span>
+                          ) : null}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3 h-3 text-[#0C831F]" />
+                          <span>Kirana AI</span>
+                          <span>•</span>
+                          <span>{msg.timestamp}</span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Message Bubble */}
+                    <div
+                      className={`max-w-[88%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed ${
+                        msg.sender === 'user'
+                          ? 'bg-[#0C831F] text-white font-medium rounded-tr-xs shadow-2xs'
+                          : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-xs shadow-2xs'
+                      }`}
+                    >
+                      <FormattedMessageText text={msg.text} />
 
                   {/* ─── CONFIRMATION CARD INSIDE CHAT ─── */}
                   {msg.type === 'CONFIRM_UPDATE' && msg.product && msg.proposedUpdates && (
-                    <div className="mt-4 p-4 rounded-xl bg-slate-900 border border-emerald-500/40 space-y-4">
+                    <div className="mt-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3 shadow-2xs">
                       
                       {/* Product Header */}
-                      <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-200/80 pb-2.5">
                         <div>
-                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-wider">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70 uppercase tracking-wider">
                             {msg.product.category || 'General'}
                           </span>
-                          <h4 className="font-extrabold text-white text-base mt-1">
+                          <h4 className="font-bold text-slate-900 text-sm mt-1">
                             {msg.product.name}
                           </h4>
-                          <span className="text-xs text-slate-400">
-                            इकाई (Unit): <span className="font-bold text-white">{msg.product.unit}</span>
+                          <span className="text-xs text-slate-500">
+                            इकाई (Unit): <span className="font-semibold text-slate-700">{msg.product.unit}</span>
                           </span>
                         </div>
-                        <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
-                          <Package className="w-5 h-5" />
+                        <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 shrink-0">
+                          <Package className="w-4 h-4" />
                         </div>
                       </div>
 
                       {/* Side-by-side Diffs with Editable Inputs */}
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {/* 1. SELLING PRICE */}
                         {msg.proposedUpdates.sellingPrice && (
-                          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                          <div className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2 shadow-2xs">
                             <div>
-                              <span className="text-[10px] font-bold text-slate-400 block uppercase">
-                                बिक्री मूल्य (Selling Price)
+                              <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wide">
+                                बिक्री मूल्य (Sell Price)
                               </span>
-                              <span className="text-xs text-slate-500 line-through">
+                              <span className="text-xs text-slate-400 line-through">
                                 ₹{msg.proposedUpdates.sellingPrice.old}
                               </span>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-emerald-500 shrink-0" />
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <div className="flex items-center gap-1">
-                              <span className="text-emerald-400 font-bold text-sm">₹</span>
+                              <span className="text-[#0C831F] font-bold text-sm">₹</span>
                               <input
                                 type="number"
                                 step="any"
@@ -768,7 +850,7 @@ export default function VoicePriceUpdater() {
                                     [msg.id]: { ...prev[msg.id], sellingPrice: val },
                                   }));
                                 }}
-                                className="w-20 text-right bg-slate-900 border border-emerald-500/60 text-white font-black text-base rounded px-2 py-0.5 focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+                                className="w-20 text-right bg-slate-50 border border-slate-200 text-slate-900 font-extrabold text-sm rounded-lg px-2 py-1 focus:bg-white focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                               />
                             </div>
                           </div>
@@ -776,18 +858,18 @@ export default function VoicePriceUpdater() {
 
                         {/* 2. BUY / PURCHASE PRICE */}
                         {msg.proposedUpdates.purchasePrice && (
-                          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                          <div className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2 shadow-2xs">
                             <div>
-                              <span className="text-[10px] font-bold text-slate-400 block uppercase">
-                                खरीद दाम (Buy Price / Cost)
+                              <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wide">
+                                खरीद दाम (Buy Price)
                               </span>
-                              <span className="text-xs text-slate-500 line-through">
+                              <span className="text-xs text-slate-400 line-through">
                                 ₹{msg.proposedUpdates.purchasePrice.old}
                               </span>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-blue-400 shrink-0" />
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <div className="flex items-center gap-1">
-                              <span className="text-blue-400 font-bold text-sm">₹</span>
+                              <span className="text-blue-600 font-bold text-sm">₹</span>
                               <input
                                 type="number"
                                 step="any"
@@ -800,7 +882,7 @@ export default function VoicePriceUpdater() {
                                     [msg.id]: { ...prev[msg.id], purchasePrice: val },
                                   }));
                                 }}
-                                className="w-20 text-right bg-slate-900 border border-blue-500/60 text-white font-black text-base rounded px-2 py-0.5 focus:ring-1 focus:ring-blue-400 focus:outline-none"
+                                className="w-20 text-right bg-slate-50 border border-slate-200 text-slate-900 font-extrabold text-sm rounded-lg px-2 py-1 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none"
                               />
                             </div>
                           </div>
@@ -808,16 +890,16 @@ export default function VoicePriceUpdater() {
 
                         {/* 3. STOCK */}
                         {msg.proposedUpdates.stock && (
-                          <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                          <div className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2 shadow-2xs">
                             <div>
-                              <span className="text-[10px] font-bold text-slate-400 block uppercase">
-                                स्टॉक (Inventory Stock)
+                              <span className="text-[10px] font-bold text-slate-500 block uppercase tracking-wide">
+                                स्टॉक (Stock)
                               </span>
-                              <span className="text-xs text-slate-500 line-through">
+                              <span className="text-xs text-slate-400 line-through">
                                 {msg.proposedUpdates.stock.old} {msg.product.unit}
                               </span>
                             </div>
-                            <ArrowRight className="w-4 h-4 text-amber-400 shrink-0" />
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <div className="flex items-center gap-1">
                               <input
                                 type="number"
@@ -831,9 +913,9 @@ export default function VoicePriceUpdater() {
                                     [msg.id]: { ...prev[msg.id], stock: val },
                                   }));
                                 }}
-                                className="w-20 text-right bg-slate-900 border border-amber-500/60 text-white font-black text-base rounded px-2 py-0.5 focus:ring-1 focus:ring-amber-400 focus:outline-none"
+                                className="w-16 text-right bg-slate-50 border border-slate-200 text-slate-900 font-extrabold text-sm rounded-lg px-2 py-1 focus:bg-white focus:ring-1 focus:ring-amber-500 focus:outline-none"
                               />
-                              <span className="text-xs text-slate-400 font-bold">{msg.product.unit}</span>
+                              <span className="text-xs text-slate-500 font-medium">{msg.product.unit}</span>
                             </div>
                           </div>
                         )}
@@ -841,23 +923,23 @@ export default function VoicePriceUpdater() {
 
                       {/* Confirmed State vs Action Buttons */}
                       {msg.confirmed ? (
-                        <div className="p-3 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span>{msg.appliedDetails || 'बदलाव सफलतापूर्वक सेव हो गया है!'}</span>
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{msg.appliedDetails || 'बदलाव सफलतापूर्वक सेव हो गया!'}</span>
                         </div>
                       ) : (
-                        <div className="pt-2 flex gap-2">
+                        <div className="pt-1">
                           <button
                             onClick={() => handleConfirmCard(msg)}
                             disabled={confirmingMessageId === msg.id}
-                            className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-black text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                            className="w-full py-2.5 px-3 rounded-xl bg-[#0C831F] hover:bg-[#0a6d1a] active:scale-[0.99] text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                           >
                             {confirmingMessageId === msg.id ? (
                               <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             ) : (
                               <>
                                 <CheckCircle2 className="w-4 h-4" />
-                                हाँ, पक्का करो (Confirm)
+                                <span>हाँ, पक्का करो (Confirm)</span>
                               </>
                             )}
                           </button>
@@ -868,16 +950,16 @@ export default function VoicePriceUpdater() {
 
                   {/* ─── CREATE NEW PRODUCT CARD INSIDE CHAT ─── */}
                   {msg.type === 'CREATE_NEW_PRODUCT' && msg.newProduct && (
-                    <div className="mt-4 p-4 rounded-xl bg-slate-900 border-2 border-emerald-500/50 space-y-4 shadow-xl">
+                    <div className="mt-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3 shadow-2xs">
                       
                       {/* Header */}
-                      <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-black text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-wider">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                        <div className="space-y-1 flex-1">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70 uppercase tracking-wider">
                             🆕 नया सामान (New Product)
                           </span>
                           <div className="mt-1">
-                            <label className="text-[10px] font-bold text-slate-400 block uppercase">सामान का नाम (Name)</label>
+                            <label className="text-[10px] font-bold text-slate-500 block uppercase">सामान का नाम</label>
                             <input
                               type="text"
                               disabled={msg.confirmed}
@@ -889,22 +971,22 @@ export default function VoicePriceUpdater() {
                                   [msg.id]: { ...prev[msg.id], name: val },
                                 }));
                               }}
-                              className="w-full bg-slate-950 border border-slate-700 text-white font-bold text-base rounded-lg px-2.5 py-1 focus:border-emerald-400 focus:outline-none"
+                              className="w-full bg-white border border-slate-200 text-slate-900 font-bold text-sm rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
                             />
                           </div>
                         </div>
-                        <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
-                          <Boxes className="w-5 h-5" />
+                        <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 shrink-0">
+                          <Boxes className="w-4 h-4" />
                         </div>
                       </div>
 
                       {/* Inputs Grid */}
-                      <div className="grid grid-cols-2 gap-2.5">
+                      <div className="grid grid-cols-2 gap-2">
                         {/* Selling Price */}
-                        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                          <span className="text-[10px] font-bold text-emerald-400 block uppercase">बिक्री रेट (Sell)</span>
+                        <div className="p-2 rounded-xl bg-white border border-slate-200/80">
+                          <span className="text-[10px] font-bold text-[#0C831F] block uppercase">बिक्री रेट (Sell)</span>
                           <div className="flex items-center gap-1 mt-1">
-                            <span className="text-emerald-400 font-bold text-sm">₹</span>
+                            <span className="text-[#0C831F] font-bold text-sm">₹</span>
                             <input
                               type="number"
                               step="any"
@@ -917,16 +999,16 @@ export default function VoicePriceUpdater() {
                                   [msg.id]: { ...prev[msg.id], sellingPrice: val },
                                 }));
                               }}
-                              className="w-full text-right bg-slate-900 border border-slate-700 text-white font-black text-sm rounded px-2 py-1 focus:border-emerald-400 focus:outline-none"
+                              className="w-full text-right bg-slate-50 border border-slate-200 text-slate-900 font-extrabold text-sm rounded px-2 py-1 focus:bg-white focus:outline-none"
                             />
                           </div>
                         </div>
 
                         {/* Buy Price */}
-                        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                          <span className="text-[10px] font-bold text-blue-400 block uppercase">खरीद मूल्य (Buy)</span>
+                        <div className="p-2 rounded-xl bg-white border border-slate-200/80">
+                          <span className="text-[10px] font-bold text-blue-600 block uppercase">खरीद रेट (Buy)</span>
                           <div className="flex items-center gap-1 mt-1">
-                            <span className="text-blue-400 font-bold text-sm">₹</span>
+                            <span className="text-blue-600 font-bold text-sm">₹</span>
                             <input
                               type="number"
                               step="any"
@@ -939,14 +1021,14 @@ export default function VoicePriceUpdater() {
                                   [msg.id]: { ...prev[msg.id], purchasePrice: val },
                                 }));
                               }}
-                              className="w-full text-right bg-slate-900 border border-slate-700 text-white font-black text-sm rounded px-2 py-1 focus:border-blue-400 focus:outline-none"
+                              className="w-full text-right bg-slate-50 border border-slate-200 text-slate-900 font-extrabold text-sm rounded px-2 py-1 focus:bg-white focus:outline-none"
                             />
                           </div>
                         </div>
 
                         {/* Initial Stock */}
-                        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                          <span className="text-[10px] font-bold text-amber-400 block uppercase">शुरुआती स्टॉक</span>
+                        <div className="p-2 rounded-xl bg-white border border-slate-200/80">
+                          <span className="text-[10px] font-bold text-amber-600 block uppercase">शुरुआती स्टॉक</span>
                           <input
                             type="number"
                             step="any"
@@ -956,16 +1038,16 @@ export default function VoicePriceUpdater() {
                               const val = e.target.value;
                               setEditableCardValues((prev) => ({
                                 ...prev,
-                                  [msg.id]: { ...prev[msg.id], stock: val },
+                                [msg.id]: { ...prev[msg.id], stock: val },
                               }));
                             }}
-                            className="w-full text-right bg-slate-900 border border-slate-700 text-white font-black text-sm rounded px-2 py-1 mt-1 focus:border-amber-400 focus:outline-none"
+                            className="w-full text-right bg-slate-50 border border-slate-200 text-slate-900 font-extrabold text-sm rounded px-2 py-1 mt-1 focus:bg-white focus:outline-none"
                           />
                         </div>
 
                         {/* Unit */}
-                        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                          <span className="text-[10px] font-bold text-slate-400 block uppercase">इकाई (Unit)</span>
+                        <div className="p-2 rounded-xl bg-white border border-slate-200/80">
+                          <span className="text-[10px] font-bold text-slate-500 block uppercase">इकाई (Unit)</span>
                           <select
                             disabled={msg.confirmed}
                             value={editableCardValues[msg.id]?.unit ?? msg.newProduct.unit}
@@ -976,7 +1058,7 @@ export default function VoicePriceUpdater() {
                                 [msg.id]: { ...prev[msg.id], unit: val },
                               }));
                             }}
-                            className="w-full bg-slate-900 border border-slate-700 text-white font-bold text-xs rounded px-2 py-1.5 mt-1 focus:border-emerald-400 focus:outline-none"
+                            className="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold text-xs rounded px-2 py-1.5 mt-1 focus:bg-white focus:outline-none"
                           >
                             <option value="pcs">pcs (पीस)</option>
                             <option value="packet">packet (पैकेट)</option>
@@ -989,22 +1071,22 @@ export default function VoicePriceUpdater() {
 
                       {/* Confirmed State vs Action Button */}
                       {msg.confirmed ? (
-                        <div className="p-3 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span>{msg.appliedDetails || 'नया सामान दुकान में जुड़ गया है!'}</span>
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{msg.appliedDetails || 'नया सामान दुकान में जुड़ गया!'}</span>
                         </div>
                       ) : (
                         <button
                           onClick={() => handleCreateNewProduct(msg)}
                           disabled={confirmingMessageId === msg.id}
-                          className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                          className="w-full py-2.5 px-3 rounded-xl bg-[#0C831F] hover:bg-[#0a6d1a] active:scale-[0.99] text-white font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                         >
                           {confirmingMessageId === msg.id ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           ) : (
                             <>
                               <CheckCircle2 className="w-4 h-4" />
-                              ➕ हाँ, नया सामान जोड़ो (Confirm & Add)
+                              <span>➕ हाँ, नया सामान जोड़ो (Confirm & Add)</span>
                             </>
                           )}
                         </button>
@@ -1015,27 +1097,25 @@ export default function VoicePriceUpdater() {
 
                   {/* ─── CONFIRM CREDIT / UDHAAR ENTRY CARD ─── */}
                   {msg.type === 'CONFIRM_CREDIT_ENTRY' && msg.creditEntry && (
-                    <div className="mt-4 p-4 rounded-xl bg-slate-900 border-2 border-slate-700 space-y-4 shadow-xl">
+                    <div className="mt-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-3 shadow-2xs">
                       {/* Header */}
-                      <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
-                        <div className="space-y-1">
-                          <span
-                            className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${
-                              msg.creditEntry.type === 'GIVE_CREDIT'
-                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                            }`}
-                          >
-                            {msg.creditEntry.type === 'GIVE_CREDIT' ? '🔴 उधार खाता (You Gave)' : '🟢 जमा पेमेंट (You Got)'}
-                          </span>
-                        </div>
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md border uppercase tracking-wider ${
+                            msg.creditEntry.type === 'GIVE_CREDIT'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}
+                        >
+                          {msg.creditEntry.type === 'GIVE_CREDIT' ? '🔴 उधार खाता (You Gave)' : '🟢 जमा पेमेंट (You Got)'}
+                        </span>
                       </div>
 
                       {/* Inputs */}
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {/* Customer Name */}
                         <div>
-                          <label className="text-[10px] font-bold text-slate-400 block uppercase">ग्राहक का नाम (Customer)</label>
+                          <label className="text-[10px] font-bold text-slate-500 block uppercase">ग्राहक का नाम</label>
                           <input
                             type="text"
                             disabled={msg.confirmed}
@@ -1047,13 +1127,13 @@ export default function VoicePriceUpdater() {
                                 [msg.id]: { ...prev[msg.id], name: val },
                               }));
                             }}
-                            className="w-full bg-slate-950 border border-slate-700 text-white font-bold text-sm rounded-lg px-2.5 py-1.5 focus:border-emerald-400 focus:outline-none"
+                            className="w-full bg-white border border-slate-200 text-slate-900 font-semibold text-xs rounded-lg px-2.5 py-1.5 focus:border-emerald-500 focus:outline-none"
                           />
                         </div>
 
                         {/* Customer Mobile */}
                         <div>
-                          <label className="text-[10px] font-bold text-slate-400 block uppercase">मोबाइल नंबर (Mobile No)</label>
+                          <label className="text-[10px] font-bold text-slate-500 block uppercase">मोबाइल नंबर</label>
                           <input
                             type="tel"
                             disabled={msg.confirmed}
@@ -1066,15 +1146,15 @@ export default function VoicePriceUpdater() {
                                 [msg.id]: { ...prev[msg.id], mobile: val },
                               }));
                             }}
-                            className="w-full bg-slate-950 border border-slate-700 text-white font-bold text-sm rounded-lg px-2.5 py-1.5 focus:border-emerald-400 focus:outline-none"
+                            className="w-full bg-white border border-slate-200 text-slate-900 font-semibold text-xs rounded-lg px-2.5 py-1.5 focus:border-emerald-500 focus:outline-none"
                           />
                         </div>
 
                         {/* Amount */}
-                        <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                          <label className="text-[10px] font-bold text-slate-400 block uppercase">राशि (Amount in ₹)</label>
+                        <div className="p-2 rounded-xl bg-white border border-slate-200/80">
+                          <label className="text-[10px] font-bold text-slate-500 block uppercase">राशि (Amount)</label>
                           <div className="flex items-center gap-1 mt-1">
-                            <span className="text-white font-bold text-base">₹</span>
+                            <span className="text-slate-800 font-bold text-sm">₹</span>
                             <input
                               type="number"
                               step="any"
@@ -1087,8 +1167,8 @@ export default function VoicePriceUpdater() {
                                   [msg.id]: { ...prev[msg.id], amount: val },
                                 }));
                               }}
-                              className={`w-full text-right bg-slate-900 border text-white font-black text-lg rounded px-2 py-1 focus:outline-none ${
-                                msg.creditEntry.type === 'GIVE_CREDIT' ? 'border-rose-500/60' : 'border-emerald-500/60'
+                              className={`w-full text-right bg-slate-50 border text-slate-900 font-black text-base rounded px-2 py-1 focus:outline-none ${
+                                msg.creditEntry.type === 'GIVE_CREDIT' ? 'border-rose-300' : 'border-emerald-300'
                               }`}
                             />
                           </div>
@@ -1096,7 +1176,7 @@ export default function VoicePriceUpdater() {
 
                         {/* Description */}
                         <div>
-                          <label className="text-[10px] font-bold text-slate-400 block uppercase">सामान / नोट (Description)</label>
+                          <label className="text-[10px] font-bold text-slate-500 block uppercase">विवरण / नोट</label>
                           <input
                             type="text"
                             disabled={msg.confirmed}
@@ -1108,7 +1188,7 @@ export default function VoicePriceUpdater() {
                                 [msg.id]: { ...prev[msg.id], description: val },
                               }));
                             }}
-                            className="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-lg px-2.5 py-1.5 focus:border-emerald-400 focus:outline-none"
+                            className="w-full bg-white border border-slate-200 text-slate-900 text-xs rounded-lg px-2.5 py-1.5 focus:border-emerald-500 focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1116,17 +1196,17 @@ export default function VoicePriceUpdater() {
                       {/* Confirmed State vs Action Button */}
                       {msg.confirmed ? (
                         <div className="space-y-2">
-                          <div className="p-3 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                             <span>{msg.appliedDetails || 'खाता एंट्री सफलतापूर्वक सेव हो गई!'}</span>
                           </div>
 
                           {msg.creditReminder?.whatsappUrl && (
                             <button
                               onClick={() => window.open(msg.creditReminder?.whatsappUrl, '_blank')}
-                              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                              className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                             >
-                              <MessageSquare className="w-4 h-4 fill-white" />
+                              <MessageSquare className="w-3.5 h-3.5 fill-white" />
                               <span>📲 WhatsApp रिमाइंडर भेजें</span>
                             </button>
                           )}
@@ -1135,14 +1215,14 @@ export default function VoicePriceUpdater() {
                         <button
                           onClick={() => handleConfirmCreditEntry(msg)}
                           disabled={confirmingMessageId === msg.id}
-                          className={`w-full py-3 px-4 rounded-xl font-black text-xs shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 text-white ${
+                          className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 text-white ${
                             msg.creditEntry.type === 'GIVE_CREDIT'
-                              ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-950/50'
-                              : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/50'
+                              ? 'bg-rose-600 hover:bg-rose-700'
+                              : 'bg-[#0C831F] hover:bg-[#0a6d1a]'
                           }`}
                         >
                           {confirmingMessageId === msg.id ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           ) : (
                             <>
                               <CheckCircle2 className="w-4 h-4" />
@@ -1156,29 +1236,29 @@ export default function VoicePriceUpdater() {
 
                   {/* ─── CREDIT REMINDER CARD ─── */}
                   {msg.type === 'CREDIT_REMINDER' && msg.creditReminder && (
-                    <div className="mt-4 p-4 rounded-xl bg-slate-900 border-2 border-emerald-500/50 space-y-3 shadow-xl">
+                    <div className="mt-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 shadow-2xs">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/70 uppercase tracking-wider">
                           📲 Payment Reminder
                         </span>
-                        <span className="text-sm font-black text-rose-400">
+                        <span className="text-xs font-black text-rose-600">
                           ₹{msg.creditReminder.balance} बाकी
                         </span>
                       </div>
 
-                      <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
-                        <div className="font-bold text-white text-sm">{msg.creditReminder.customerName}</div>
-                        <div className="text-slate-400 text-[11px] mt-0.5">📞 {msg.creditReminder.mobile}</div>
-                        <div className="text-slate-300 text-[11px] mt-2 whitespace-pre-line bg-slate-900 p-2 rounded border border-slate-800">
+                      <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 text-xs">
+                        <div className="font-bold text-slate-900 text-sm">{msg.creditReminder.customerName}</div>
+                        <div className="text-slate-500 text-[11px] mt-0.5">📞 {msg.creditReminder.mobile}</div>
+                        <div className="text-slate-700 text-[11px] mt-2 whitespace-pre-line bg-slate-50 p-2 rounded-lg border border-slate-200/70">
                           {msg.creditReminder.reminderMsg}
                         </div>
                       </div>
 
                       <button
                         onClick={() => window.open(msg.creditReminder?.whatsappUrl, '_blank')}
-                        className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                        className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                       >
-                        <MessageSquare className="w-4 h-4 fill-white" />
+                        <MessageSquare className="w-3.5 h-3.5 fill-white" />
                         <span>WhatsApp पर रिमाइंडर भेजें</span>
                       </button>
                     </div>
@@ -1186,37 +1266,37 @@ export default function VoicePriceUpdater() {
 
                   {/* ─── CREDIT SUMMARY / DEBTOR LIST ─── */}
                   {(msg.type === 'CREDIT_SUMMARY' || msg.type === 'CREDIT_REMINDER_LIST') && (msg.creditSummary?.dueList || msg.dueList) && (
-                    <div className="mt-4 p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 shadow-xl">
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <span className="text-xs font-black text-white flex items-center gap-1.5">
-                          <BookOpen className="w-4 h-4 text-rose-400" />
+                    <div className="mt-3 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2.5 shadow-2xs">
+                      <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                        <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <BookOpen className="w-4 h-4 text-rose-500" />
                           उधार बकायेदार (Debtor List)
                         </span>
                         {msg.creditSummary?.totalDue !== undefined && (
-                          <span className="text-xs font-black text-rose-400">
+                          <span className="text-xs font-black text-rose-600">
                             कुल: ₹{msg.creditSummary.totalDue}
                           </span>
                         )}
                       </div>
 
-                      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                      <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
                         {(msg.creditSummary?.dueList || msg.dueList || []).map((debtor) => (
                           <div
                             key={debtor.id}
-                            className="p-2.5 rounded-lg bg-slate-950 border border-slate-800/80 flex items-center justify-between gap-2"
+                            className="p-2 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2 shadow-2xs"
                           >
                             <div className="min-w-0">
-                              <div className="text-xs font-extrabold text-white truncate">{debtor.name}</div>
-                              <div className="text-[10px] text-slate-400">{debtor.mobile}</div>
+                              <div className="text-xs font-bold text-slate-900 truncate">{debtor.name}</div>
+                              <div className="text-[10px] text-slate-500">{debtor.mobile}</div>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              <span className="text-xs font-black text-rose-400">₹{debtor.balance}</span>
+                              <span className="text-xs font-bold text-rose-600">₹{debtor.balance}</span>
                               <button
                                 onClick={() => window.open(debtor.whatsappUrl, '_blank')}
-                                className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
                                 title="Send WhatsApp Reminder"
                               >
-                                <MessageSquare className="w-3 h-3 fill-white" />
+                                <MessageSquare className="w-3.5 h-3.5 fill-emerald-600" />
                               </button>
                             </div>
                           </div>
@@ -1227,21 +1307,21 @@ export default function VoicePriceUpdater() {
 
                 </div>
               </div>
-            ))}
+            )))}
 
             {/* Error Message banner */}
             {errorMsg && (
-              <div className="p-3 rounded-xl bg-red-950/50 border border-red-500/30 text-red-300 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             {/* AI is thinking indicator */}
             {isLoading && (
-              <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold bg-slate-850 p-3 rounded-2xl border border-slate-800 w-fit">
-                <div className="w-3.5 h-3.5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
-                <span>AI जवाब तैयार कर रहा है...</span>
+              <div className="flex items-center gap-2 text-xs text-slate-600 font-medium bg-white p-2.5 px-3 rounded-2xl border border-slate-200 shadow-2xs w-fit">
+                <div className="w-3 h-3 border-2 border-slate-200 border-t-[#0C831F] rounded-full animate-spin" />
+                <span>AI सोच रहा है...</span>
               </div>
             )}
 
@@ -1250,25 +1330,25 @@ export default function VoicePriceUpdater() {
 
           {/* ─── LIVE VOICE BAR (WHEN LISTENING) ─── */}
           {isListening && (
-            <div className="px-5 py-3 bg-emerald-950/80 border-t border-emerald-500/40 flex items-center justify-between gap-3 animate-pulse">
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
-                <span className="text-xs font-black text-emerald-200 shrink-0">सुन रहे हैं...</span>
-                <span className="text-xs text-white font-medium italic truncate">
+            <div className="px-4 py-2.5 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between gap-3 animate-pulse">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                <span className="text-xs font-bold text-emerald-800 shrink-0">सुन रहे हैं...</span>
+                <span className="text-xs text-slate-700 italic truncate font-medium">
                   "{transcript || 'बोलिए...'}"
                 </span>
               </div>
               <button
                 onClick={stopListening}
-                className="text-xs px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-bold shrink-0 cursor-pointer"
+                className="text-xs px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold shrink-0 cursor-pointer"
               >
                 पूरा हुआ
               </button>
             </div>
           )}
 
-          {/* ─── INPUT BAR (TEXT + VOICE) ─── */}
-          <div className="p-4 border-t border-slate-800 bg-slate-950/90">
+          {/* ─── FLOATING PILL INPUT BAR (TEXT + VOICE) ─── */}
+          <div className="p-3 border-t border-slate-200/80 bg-white/95 backdrop-blur-xs">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1281,14 +1361,14 @@ export default function VoicePriceUpdater() {
                 type="button"
                 onClick={isListening ? stopListening : startListening}
                 disabled={isLoading}
-                className={`p-3 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                   isListening
-                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 animate-pulse'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-950/60'
+                    ? 'bg-red-500 text-white shadow-md shadow-red-200 animate-pulse'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 active:scale-95'
                 }`}
                 title={isListening ? 'माइक बंद करें' : 'बोलने के लिए दबाएं'}
               >
-                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isListening ? <MicOff className="w-4 h-4 text-white" /> : <Mic className="w-4 h-4 text-slate-700" />}
               </button>
 
               {/* Text Input */}
@@ -1299,30 +1379,31 @@ export default function VoicePriceUpdater() {
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder={
                   language === 'hi-IN'
-                    ? 'यहाँ लिखें या माइक से बोलें (उदा: डाबर रेड 22 कर दो)...'
-                    : 'Type or speak (e.g. Dabur red buy 16 sell 22)...'
+                    ? 'दाम, नया सामान या उधार बोलें / लिखें...'
+                    : 'Ask price, new item or udhaar...'
                 }
-                className="flex-1 bg-slate-900 border border-slate-750 text-white placeholder-slate-500 text-sm rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500 font-medium"
+                className="flex-1 bg-slate-100/90 border border-slate-200/80 text-slate-900 placeholder-slate-400 text-xs sm:text-sm rounded-full px-4 py-2.5 focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-1 focus:ring-emerald-500 font-medium transition-all"
               />
 
               {/* Send Button */}
               <button
                 type="submit"
                 disabled={!inputText.trim() || isLoading}
-                className="p-3 rounded-2xl bg-slate-800 hover:bg-slate-750 text-white disabled:opacity-40 transition-colors cursor-pointer shrink-0"
+                className="w-10 h-10 rounded-full bg-[#0C831F] hover:bg-[#0a6d1a] disabled:bg-slate-200 disabled:opacity-40 text-white flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs"
                 title="भेजें"
               >
-                <Send className="w-5 h-5 text-emerald-400" />
+                <Send className="w-4 h-4" />
               </button>
             </form>
 
-            <div className="flex items-center justify-between text-[10px] text-slate-500 mt-2 px-1">
-              <span>दुकानदार AI: खरीद, बिक्री व स्टॉक तीनों सपोर्टेड</span>
-              <span className="font-mono bg-slate-900 px-1 py-0.5 rounded text-slate-400">V वॉइस • Enter भेजें</span>
+            <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 px-2 font-medium">
+              <span>दाम बदलें • नया सामान • उधार खाता</span>
+              <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">V वॉइस • Enter</span>
             </div>
           </div>
 
         </div>
+        </>
       )}
     </>
   );
