@@ -80,13 +80,14 @@ export default function PublicStorePage({ params }: { params: any }) {
     setLoading(true);
     setError(null);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const [productsRes, settingsRes] = await Promise.all([
-        axios.get(`${API_URL}/store/${storeId}/products`),
-        axios.get(`${API_URL}/settings/public/${storeId}`).catch(() => ({ data: { data: null } }))
-      ]);
-      setProducts(productsRes.data.data);
-      setStoreSettings(settingsRes.data.data);
+      const res = await axios.get(`/api/stores/${storeId}`);
+      if (res.data?.success && res.data?.data) {
+        const store = res.data.data;
+        setStoreSettings(store);
+        setProducts(store.products || []);
+      } else {
+        setError('Store not found or currently offline');
+      }
     } catch (e: any) {
       setError('Store not found or currently offline');
     } finally {
@@ -147,18 +148,19 @@ export default function PublicStorePage({ params }: { params: any }) {
     setError(null);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const payload = {
+        storeId,
         customerMobile: mobile,
         customerName: name,
         paymentMode,
         items: Object.values(cart).map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
+          price: parseFloat(item.product.sellingPrice),
         })),
       };
 
-      const res = await axios.post(`${API_URL}/store/${storeId}/orders`, payload);
+      const res = await axios.post('/api/online-orders', payload);
       setOrderSuccess(res.data.data);
       setCart({});
       setShowCartModal(false);

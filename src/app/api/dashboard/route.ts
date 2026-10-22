@@ -77,6 +77,18 @@ export async function GET(req: NextRequest) {
       where: { storeId: user.storeId, stock: { lte: 5 } }
     });
 
+    // Calculate total credit dues from market
+    const creditDueTransactions = await prisma.creditTransaction.findMany({
+      where: { storeId: user.storeId },
+      select: { type: true, amount: true },
+    });
+    let totalCreditDue = 0;
+    for (const t of creditDueTransactions) {
+      if (t.type === 'GIVE_CREDIT') totalCreditDue += Number(t.amount);
+      else if (t.type === 'PAYMENT_RECEIVED') totalCreditDue -= Number(t.amount);
+    }
+    totalCreditDue = Math.max(0, Math.round(totalCreditDue * 100) / 100);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -85,6 +97,7 @@ export async function GET(req: NextRequest) {
         cashSales,
         upiSales,
         cardSales,
+        totalCreditDue,
         bestSellers,
         categorySales,
         lowStock: {

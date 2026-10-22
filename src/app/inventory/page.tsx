@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import Logo from '@/components/Logo';
 import Sidebar from '@/components/Sidebar';
 import {
   Plus,
@@ -13,14 +12,20 @@ import {
   AlertTriangle,
   Boxes,
   DollarSign,
-  LayoutDashboard,
-  Zap,
-  BarChart2,
-  Globe,
+  TrendingUp,
   Camera,
   Image as ImageIcon,
   Trash2,
-  Edit2
+  Edit2,
+  FileSpreadsheet,
+  CheckCircle,
+  X,
+  ArrowRight,
+  Filter,
+  Package,
+  Layers,
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 
 interface Category {
@@ -98,22 +103,21 @@ export default function InventoryPage() {
   const [actualStock, setActualStock] = useState('');
   const [auditReason, setAuditReason] = useState('');
 
-  // UI helpers
+  // Filtering states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Redirect non-admins
   useEffect(() => {
-    if (!authLoading && user && user.role !== 'ADMIN') {
-      router.push('/pos');
+    if (user && user.role === 'ADMIN') {
+      fetchInventoryData();
     }
-  }, [user, authLoading, router]);
+  }, [user]);
 
+  // Voice AI auto-update listener
   useEffect(() => {
-    fetchInventoryData();
-
     const handleVoiceUpdate = () => {
       fetchInventoryData();
     };
@@ -148,7 +152,7 @@ export default function InventoryPage() {
     }
   }
 
-  // Handle Image Upload with Client-Side Compression (Fast & Free)
+  // Handle Image Upload with Client-Side Compression
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -179,8 +183,6 @@ export default function InventoryPage() {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
-
-        // Compress as JPEG with 0.6 quality (creates a very small base64 string)
         const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
         setProdImage(compressedBase64);
       };
@@ -201,30 +203,30 @@ export default function InventoryPage() {
     try {
       const payload = {
         name: prodName.trim(),
-        barcode: prodBarcode.trim() || null,
-        brand: prodBrand.trim() || null,
-        categoryId: prodCategoryId || null,
-        purchasePrice: parseFloat(prodPurchasePrice || '0'),
-        sellingPrice: parseFloat(prodSellingPrice || '0'),
-        stock: parseFloat(prodStock || '0'),
+        barcode: prodBarcode.trim() || undefined,
+        brand: prodBrand.trim() || undefined,
+        categoryId: prodCategoryId || undefined,
+        purchasePrice: prodPurchasePrice ? Number(prodPurchasePrice) : 0,
+        sellingPrice: Number(prodSellingPrice),
+        stock: prodStock ? Number(prodStock) : 0,
         unit: prodUnit,
-        gst: parseFloat(prodGst || '0'),
-        image: prodImage || null,
+        gst: prodGst ? Number(prodGst) : 0,
+        image: prodImage || undefined,
       };
 
       if (editingProductId) {
-        await api.patch(`/products/${editingProductId}`, payload);
-        showToast('Product update ho gaya! ✅', 'success');
+        await api.put(`/products/${editingProductId}`, payload);
+        showToast('Product update ho gaya!', 'success');
       } else {
         await api.post('/products', payload);
-        showToast('Naya Product add ho gaya! 🎉', 'success');
+        showToast('Naya product dukaan me jud gaya!', 'success');
       }
 
       setShowAddProductModal(false);
       clearProductForm();
       fetchInventoryData();
     } catch (err: any) {
-      showToast(err.response?.data?.message || 'Error saving product', 'error');
+      showToast(err.response?.data?.message || 'Error aa raha hai, check karein', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -236,23 +238,24 @@ export default function InventoryPage() {
     setProdBarcode(p.barcode || '');
     setProdBrand(p.brand || '');
     setProdCategoryId(p.categoryId || '');
-    setProdPurchasePrice(String(p.purchasePrice));
+    setProdPurchasePrice(p.purchasePrice ? String(p.purchasePrice) : '');
     setProdSellingPrice(String(p.sellingPrice));
     setProdStock(String(p.stock));
     setProdUnit(p.unit || 'pcs');
-    setProdGst(String(p.gst || '0'));
+    setProdGst(p.gst ? String(p.gst) : '0');
     setProdImage(p.image || null);
     setShowAddProductModal(true);
   };
 
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Kya aap sach me "${name}" ko delete karna chahte hain?`)) return;
+
     try {
       await api.delete(`/products/${id}`);
-      showToast('Product delete ho gaya', 'success');
+      showToast(`${name} delete ho gaya`, 'success');
       fetchInventoryData();
-    } catch {
-      showToast('Product delete nahi hua', 'error');
+    } catch (err: any) {
+      showToast(err.response?.data?.message || 'Delete nahi ho paya', 'error');
     }
   };
 
@@ -270,30 +273,25 @@ export default function InventoryPage() {
     setProdImage(null);
   };
 
-  // Submit bulk purchase (restock)
+  // Submit Restock Purchase
   const handlePurchaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProductId || !purchaseQty) return;
 
     setSubmitting(true);
     try {
-      const payload = {
-        items: [
-          {
-            productId: selectedProductId,
-            quantity: Number(purchaseQty),
-            purchasePrice: newPurchasePrice ? Number(newPurchasePrice) : undefined,
-          },
-        ],
-      };
+      await api.post('/inventory/purchase', {
+        productId: selectedProductId,
+        quantity: Number(purchaseQty),
+        purchasePrice: newPurchasePrice ? Number(newPurchasePrice) : undefined,
+      });
 
-      await api.post('/inventory/purchase', payload);
-      showToast('Stock update ho gaya!', 'success');
+      showToast('Stock safely add ho gaya!', 'success');
       setShowPurchaseModal(false);
       clearRestockForm();
       fetchInventoryData();
     } catch (err: any) {
-      showToast(err.response?.data?.message || 'Error aa raha hai, try again', 'error');
+      showToast(err.response?.data?.message || 'Error aa raha hai', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -371,66 +369,70 @@ export default function InventoryPage() {
 
   if (authLoading || !user || user.role !== 'ADMIN') {
     return (
-      <div className="flex-1 min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 border-4 border-black border-t-transparent rounded-full animate-spin" />
+      <div className="flex-1 min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-slate-900 border-t-emerald-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'Inter, sans-serif' }}>
-      {/* Toast */}
+    <div className="flex min-h-screen bg-[#f8fafc] font-sans antialiased text-slate-900">
+      {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-6 py-3 rounded-xl border text-sm font-bold shadow-xl transition-all ${
-            toast.type === 'success' ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'
+          className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-2xl border text-xs font-black shadow-2xl flex items-center gap-2 animate-in fade-in zoom-in-95 ${
+            toast.type === 'success'
+              ? 'bg-slate-950 text-white border-emerald-500/50'
+              : 'bg-rose-950 text-white border-rose-500/50'
           }`}
         >
-          {toast.message}
+          {toast.type === 'success' ? (
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 text-rose-400" />
+          )}
+          <span>{toast.message}</span>
         </div>
       )}
 
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-x-hidden h-screen overflow-y-auto pb-24 md:pb-0">
-        {/* Header */}
-        <div style={{
-          background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '20px 32px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16
-        }}>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-12">
+        {/* Top Header */}
+        <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: 0 }}>📦 Inventory & Products</h1>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0', fontWeight: 500 }}>
-              Samaan ka stock, rate aur photo manage karein
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-black text-slate-900 m-0 tracking-tight">
+                Products & Inventory
+              </h1>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                {products.length} SKUs
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium m-0 mt-0.5">
+              Manage product catalog, real-time stock, margins, barcodes and batch Excel import.
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {/* Action Button Cluster */}
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => { clearProductForm(); setShowAddProductModal(true); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, background: '#059669', color: '#fff',
-                fontSize: 13, fontWeight: 700, padding: '10px 18px', border: 'none', borderRadius: 10,
-                cursor: 'pointer', boxShadow: '0 2px 8px rgba(5,150,105,0.25)'
-              }}
+              className="flex items-center gap-2 bg-[#059669] hover:bg-emerald-700 active:scale-95 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-xs transition-all"
             >
-              <Plus className="w-4 h-4" /> Naya Item Add Karein
+              <Plus className="w-4 h-4" />
+              <span>Add New Item</span>
             </button>
 
-            <label
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, background: '#2563eb', color: '#fff',
-                fontSize: 13, fontWeight: 700, padding: '10px 18px', border: 'none', borderRadius: 10,
-                cursor: 'pointer', boxShadow: '0 2px 8px rgba(37,99,235,0.25)'
-              }}
-            >
-              <Boxes className="w-4 h-4" /> Import Excel
+            <label className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 font-bold text-xs px-3.5 py-2.5 rounded-xl cursor-pointer shadow-2xs transition-colors">
+              <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+              <span>Import Excel</span>
               <input
                 type="file"
                 accept=".xlsx, .xls, .csv"
-                style={{ display: 'none' }}
+                className="hidden"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
@@ -446,23 +448,27 @@ export default function InventoryPage() {
                         const worksheet = workbook.Sheets[firstSheetName];
                         const json = XLSX.utils.sheet_to_json(worksheet) as any[];
 
-                        // Map standard fields, handle different column names from "Export Items.xlsx"
-                        const mapped = json.map(row => ({
-                          name: row['Item name*'] || row['Item Name'] || row.name || row.Name || '',
-                          price: parseFloat(row['Sale price'] || row['Sales Price*'] || row['Selling Price'] || row.price || row.Price || 0),
-                          stock: parseFloat(row['Current stock quantity'] || row['Opening Quantity'] || row.stock || row.Stock || 0),
-                          barcode: row['Item code'] || row['Item Code'] || row.barcode || row.Barcode || '',
-                        })).filter(item => item.name);
+                        const mapped = json.map((row) => ({
+                          name: row['Item Name'] || row['Product Name'] || row['name'] || '',
+                          barcode: row['Barcode'] || row['barcode'] ? String(row['Barcode'] || row['barcode']) : undefined,
+                          purchasePrice: Number(row['Cost Price'] || row['Purchase Price'] || row['purchasePrice'] || 0),
+                          sellingPrice: Number(row['Selling Price'] || row['MRP'] || row['sellingPrice'] || 0),
+                          stock: Number(row['Current Stock'] || row['Stock'] || row['stock'] || 0),
+                          unit: row['Unit'] || row['unit'] || 'pcs',
+                          brand: row['Brand'] || row['brand'] || undefined,
+                        })).filter((r) => r.name && r.sellingPrice > 0);
 
-                        const res = await api.post('/products/import', { products: mapped });
-                        if (res.data?.success) {
-                          showToast(`✅ ${res.data.imported} products imported!`, 'success');
-                          fetchInventoryData();
-                        } else {
-                          showToast('Import failed', 'error');
+                        if (mapped.length === 0) {
+                          showToast('Excel file me koi valid product data nahi mila', 'error');
+                          setLoading(false);
+                          return;
                         }
+
+                        await api.post('/products/bulk', { products: mapped });
+                        showToast(`${mapped.length} products successfully import ho gaye!`, 'success');
+                        fetchInventoryData();
                       } catch (err: any) {
-                        showToast('Error parsing file: ' + err.message, 'error');
+                        showToast(err.response?.data?.message || 'Import fail ho gaya', 'error');
                       } finally {
                         setLoading(false);
                       }
@@ -472,100 +478,109 @@ export default function InventoryPage() {
                     showToast('Failed to load excel parser', 'error');
                     setLoading(false);
                   }
-                  e.target.value = ''; // Reset input
+                  e.target.value = '';
                 }}
               />
             </label>
 
             <button
               onClick={() => { clearRestockForm(); setShowPurchaseModal(true); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, background: '#0f172a', color: '#fff',
-                fontSize: 13, fontWeight: 700, padding: '10px 18px', border: 'none', borderRadius: 10,
-                cursor: 'pointer'
-              }}
+              className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-2xs transition-colors"
             >
-              <Boxes className="w-4 h-4" /> Stock Restock
+              <Boxes className="w-4 h-4 text-emerald-400" />
+              <span>Stock In</span>
             </button>
 
             <button
               onClick={() => { clearRestockForm(); setShowAuditModal(true); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, background: '#fff', color: '#0f172a',
-                fontSize: 13, fontWeight: 700, padding: '10px 18px', border: '1px solid #cbd5e1', borderRadius: 10,
-                cursor: 'pointer'
-              }}
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-2xs transition-colors"
             >
-              <History className="w-4 h-4" /> Stock Check / Fix
+              <History className="w-4 h-4 text-slate-500" />
+              <span>Audit Fix</span>
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Body Container */}
-        <div style={{ padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Stats Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Body Content */}
+        <div className="px-6 py-6 max-w-7xl w-full mx-auto space-y-6">
+          {/* ─── TOP KPI STAT ROW ─── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Total Stock Value */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex items-center justify-between">
               <div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', margin: 0 }}>Total Stock Value</p>
-                <h3 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '6px 0 0' }}>₹{stats.totalStockValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</h3>
-                <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>Kharid rate ke hisaab se</p>
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                  Total Inventory Value
+                </span>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums mt-1 m-0">
+                  ₹{stats.totalStockValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-xs text-slate-400 font-medium m-0 mt-1">
+                  Potential Profit: +₹{stats.potentialProfit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </p>
               </div>
-              <div style={{ background: '#ecfdf5', padding: 12, borderRadius: 12, color: '#059669' }}>
-                <DollarSign className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                <DollarSign className="w-5 h-5" />
               </div>
             </div>
 
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Low Stock Alert */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex items-center justify-between">
               <div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', margin: 0 }}>Low Stock Alert</p>
-                <h3 style={{ fontSize: 24, fontWeight: 800, color: '#e11d48', margin: '6px 0 0' }}>{lowStock.length} Items</h3>
-                <p style={{ fontSize: 11, color: '#e11d48', margin: '4px 0 0', fontWeight: 600 }}>5 unit se kam bache hain</p>
+                <span className="text-[11px] font-black uppercase tracking-wider text-rose-700">
+                  Low Stock Warnings
+                </span>
+                <p className="text-2xl sm:text-3xl font-black text-rose-900 tracking-tight tabular-nums mt-1 m-0">
+                  {lowStock.length} Item{lowStock.length !== 1 ? 's' : ''}
+                </p>
+                <p className="text-xs text-rose-600 font-semibold m-0 mt-1">
+                  Remaining ≤ 5 units in store
+                </p>
               </div>
-              <div style={{ background: '#fff1f2', padding: 12, borderRadius: 12, color: '#e11d48' }}>
-                <AlertTriangle className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
               </div>
             </div>
 
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Total Active SKUs */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex items-center justify-between">
               <div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', margin: 0 }}>Total Products</p>
-                <h3 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '6px 0 0' }}>{products.length} Items</h3>
-                <p style={{ fontSize: 11, color: '#94a3b8', margin: '4px 0 0' }}>{stats.totalStockItems.toFixed(0)} total units</p>
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                  Active Store SKUs
+                </span>
+                <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums mt-1 m-0">
+                  {products.length} Products
+                </p>
+                <p className="text-xs text-slate-400 font-medium m-0 mt-1">
+                  {stats.totalStockItems.toFixed(0)} total units across shelves
+                </p>
               </div>
-              <div style={{ background: '#f8fafc', padding: 12, borderRadius: 12, color: '#0f172a' }}>
-                <Boxes className="w-6 h-6" />
+              <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center shrink-0">
+                <Boxes className="w-5 h-5" />
               </div>
             </div>
           </div>
 
-          {/* Catalog & History Grid */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Products Table */}
-            <div className="flex-1 lg:w-2/3 bg-white border border-slate-200 rounded-2xl p-4 md:p-6 w-full min-w-0">
-              {/* Search & Filter Bar */}
-              <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-                  <Search className="w-4 h-4" style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Samaan ya Barcode search karein..."
-                    style={{
-                      width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10,
-                      padding: '10px 14px 10px 38px', fontSize: 13, outline: 'none'
-                    }}
-                  />
-                </div>
+          {/* ─── SEARCH & CATEGORY PILL FILTER BAR ─── */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search Bar */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by product name, brand, or barcode [F2]..."
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl pl-10 pr-4 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
 
+              {/* Category Dropdown (Mobile) */}
+              <div className="sm:hidden">
                 <select
                   value={selectedCategoryFilter}
                   onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                  style={{
-                    background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 10,
-                    padding: '10px 14px', fontSize: 13, outline: 'none', fontWeight: 600
-                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900"
                 >
                   <option value="all">All Categories</option>
                   {categories.map((c) => (
@@ -573,75 +588,167 @@ export default function InventoryPage() {
                   ))}
                 </select>
               </div>
+            </div>
 
-              {/* Table */}
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: 13 }}>
+            {/* Desktop Category Filter Pills */}
+            <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setSelectedCategoryFilter('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                  selectedCategoryFilter === 'all'
+                    ? 'bg-slate-900 text-white font-black shadow-2xs'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`}
+              >
+                All ({products.length})
+              </button>
+              {categories.map((c) => {
+                const count = products.filter((p) => p.categoryId === c.id).length;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelectedCategoryFilter(c.id)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 ${
+                      selectedCategoryFilter === c.id
+                        ? 'bg-slate-900 text-white font-black shadow-2xs'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    {c.name} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ─── DATA TABLE & STOCK MOVEMENT SPLIT ─── */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Products Table (8 Cols) */}
+            <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-600">
+                  Catalog List ({filteredProducts.length} Showing)
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: 11, textTransform: 'uppercase', fontWeight: 700 }}>
-                      <th style={{ padding: '10px 8px' }}>Product</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Cost</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Selling MRP</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Stock</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'center' }}>Actions</th>
+                    <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-500 font-black uppercase tracking-wider text-[10px]">
+                      <th className="py-3 px-4">Item Details</th>
+                      <th className="py-3 px-3 text-right">Cost Price</th>
+                      <th className="py-3 px-3 text-right">Selling Price</th>
+                      <th className="py-3 px-3 text-right">Margin</th>
+                      <th className="py-3 px-3 text-right">Stock</th>
+                      <th className="py-3 px-4 text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {loading ? (
-                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Loading...</td></tr>
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
+                          Loading products catalog...
+                        </td>
+                      </tr>
                     ) : filteredProducts.length === 0 ? (
-                      <tr><td colSpan={5} style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Koi item nahi mila</td></tr>
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400 font-bold">
+                          Koi item nahi mila. Naya item add karein.
+                        </td>
+                      </tr>
                     ) : (
                       filteredProducts.map((p) => {
                         const stockNum = Number(p.stock);
                         const isLow = stockNum <= 5;
+                        const buyPrice = Number(p.purchasePrice || 0);
+                        const sellPrice = Number(p.sellingPrice);
+                        const marginAmt = sellPrice - buyPrice;
+                        const marginPct = buyPrice > 0 ? Math.round((marginAmt / buyPrice) * 100) : 0;
+
                         return (
-                          <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '12px 8px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                              <div style={{
-                                width: 44, height: 44, borderRadius: 8, background: '#f1f5f9',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0'
-                              }}>
-                                {p.image ? (
-                                  <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                  <ImageIcon className="w-5 h-5 text-slate-400" />
-                                )}
+                          <tr key={p.id} className="hover:bg-slate-50/70 transition-colors group">
+                            {/* Product */}
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                  {p.image ? (
+                                    <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <ImageIcon className="w-4 h-4 text-slate-400" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-black text-slate-900 truncate m-0 text-xs">
+                                    {p.name}
+                                  </p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    {p.brand && (
+                                      <span className="text-[10px] text-slate-500 font-medium">
+                                        {p.brand}
+                                      </span>
+                                    )}
+                                    {p.barcode && (
+                                      <span className="text-[9px] font-mono bg-slate-100 text-slate-600 px-1 py-0.2 rounded border border-slate-200">
+                                        {p.barcode}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <p style={{ margin: 0, fontWeight: 700, color: '#0f172a' }}>{p.name}</p>
-                                <p style={{ margin: '2px 0 0', fontSize: 11, color: '#64748b' }}>
-                                  {p.brand ? `${p.brand} • ` : ''}{p.barcode ? `Barcode: ${p.barcode}` : 'No Barcode'}
-                                </p>
-                              </div>
                             </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', color: '#64748b', fontWeight: 600 }}>
-                              ₹{Number(p.purchasePrice).toFixed(0)}
+
+                            {/* Cost */}
+                            <td className="py-3 px-3 text-right font-mono font-medium text-slate-500">
+                              ₹{buyPrice.toFixed(0)}
                             </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
-                              ₹{Number(p.sellingPrice).toFixed(0)}
+
+                            {/* Selling */}
+                            <td className="py-3 px-3 text-right font-mono font-black text-slate-900">
+                              ₹{sellPrice.toFixed(0)}
                             </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                              <span style={{ fontWeight: 800, color: isLow ? '#e11d48' : '#0f172a' }}>
+
+                            {/* Margin Badge */}
+                            <td className="py-3 px-3 text-right font-mono">
+                              {marginPct > 0 ? (
+                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                  +{marginPct}%
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-slate-400">-</span>
+                              )}
+                            </td>
+
+                            {/* Stock */}
+                            <td className="py-3 px-3 text-right font-mono">
+                              <span
+                                className={`font-black px-2 py-0.5 rounded-lg text-xs inline-block ${
+                                  isLow
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    : 'text-slate-900'
+                                }`}
+                              >
                                 {stockNum.toFixed(0)} {p.unit}
                               </span>
                             </td>
-                            <td style={{ padding: '12px 8px', textAlign: 'center' }}>
-                              <div style={{ display: 'inline-flex', gap: 6 }}>
+
+                            {/* Actions */}
+                            <td className="py-3 px-4 text-center">
+                              <div className="inline-flex items-center gap-1">
                                 <button
                                   onClick={() => handleEditProduct(p)}
-                                  style={{ padding: 6, borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer' }}
-                                  title="Edit"
+                                  title="Edit Product"
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                                 >
-                                  <Edit2 className="w-3.5 h-3.5 text-slate-700" />
+                                  <Edit2 className="w-3.5 h-3.5" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteProduct(p.id, p.name)}
-                                  style={{ padding: 6, borderRadius: 6, border: '1px solid #fecdd3', background: '#fff1f2', cursor: 'pointer' }}
-                                  title="Delete"
+                                  title="Delete Product"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             </td>
@@ -654,77 +761,110 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            {/* History Logs */}
-            <div className="w-full lg:w-1/3 bg-white border border-slate-200 rounded-2xl p-4 md:p-6 flex flex-col">
-              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <History className="w-4 h-4" /> Stock History (Khata)
-              </h2>
+            {/* Stock Movement History (4 Cols) */}
+            <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-emerald-600" />
+                    <h2 className="text-sm font-black text-slate-900 m-0">Stock Log (Khata)</h2>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Audit Feed
+                  </span>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto', maxHeight: 520 }}>
-                {logs.length === 0 ? (
-                  <p style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8', fontSize: 13 }}>Koi history nahi hai</p>
-                ) : (
-                  logs.slice(0, 20).map((log) => {
-                    const qtyVal = Number(log.quantity);
-                    const isPositive = qtyVal > 0;
-                    return (
-                      <div key={log.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <h4 style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
-                            {log.product?.name || 'Item'}
-                          </h4>
-                          <span style={{
-                            fontSize: 11, fontWeight: 800, padding: '2px 6px', borderRadius: 6,
-                            background: isPositive ? '#ecfdf5' : '#fff1f2',
-                            color: isPositive ? '#059669' : '#e11d48'
-                          }}>
-                            {isPositive ? '+' : ''}{qtyVal.toFixed(0)} {log.product?.unit || ''}
-                          </span>
+                <div className="space-y-2.5 overflow-y-auto max-h-[520px] pr-1">
+                  {logs.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 font-bold text-xs">
+                      Koi transaction history nahi hai.
+                    </div>
+                  ) : (
+                    logs.slice(0, 15).map((log) => {
+                      const qtyVal = Number(log.quantity);
+                      const isPositive = qtyVal > 0;
+                      return (
+                        <div
+                          key={log.id}
+                          className="p-3 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-200 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-900 truncate m-0">
+                                {log.product?.name || 'Item'}
+                              </p>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                {new Date(log.createdAt).toLocaleTimeString('en-IN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })} • {log.type}
+                              </span>
+                            </div>
+                            <span
+                              className={`text-[11px] font-mono font-black px-2 py-0.5 rounded-lg shrink-0 ${
+                                isPositive
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-rose-100 text-rose-800'
+                              }`}
+                            >
+                              {isPositive ? '+' : ''}{qtyVal.toFixed(0)}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-[10px] text-slate-500 font-mono flex items-center justify-between border-t border-slate-200/60 pt-1.5">
+                            <span>Before: {Number(log.beforeStock)}</span>
+                            <span>→</span>
+                            <span className="font-bold text-slate-900">After: {Number(log.afterStock)}</span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
-                          <span>{new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          <span>Pehle: {Number(log.beforeStock)} → Ab: {Number(log.afterStock)}</span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 text-center">
+                <p className="text-[11px] text-slate-400 font-medium m-0">
+                  Changes auto-logged from POS checkout & voice commands.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Add / Edit Product Modal with Image Picker */}
+      {/* ─── ADD / EDIT PRODUCT MODAL ─── */}
       {showAddProductModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
-              {editingProductId ? '✏️ Item Edit Karein' : '➕ Naya Item Add Karein'}
-            </h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 20px' }}>Item details aur photo enter karein.</p>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-black text-sm text-slate-900 m-0">
+                {editingProductId ? '✏️ Edit Product' : '➕ Add New Product'}
+              </h3>
+              <button
+                onClick={() => { setShowAddProductModal(false); clearProductForm(); }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handleProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Product Photo Picker */}
+            <form onSubmit={handleProductSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Photo Picker */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                  Item Photo (Upload or Paste Link)
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-2">
+                  Product Image
                 </label>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div className="flex items-center gap-3">
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      width: 64, height: 64, borderRadius: 10, border: '2px dashed #cbd5e1',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                      background: '#f8fafc', cursor: 'pointer', overflow: 'hidden', position: 'relative'
-                    }}
+                    className="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-500 flex flex-col items-center justify-center bg-slate-50 cursor-pointer overflow-hidden transition-colors shrink-0"
                   >
                     {prodImage ? (
-                      <img src={prodImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={prodImage} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
                       <>
                         <Camera className="w-5 h-5 text-slate-400" />
-                        <span style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>Photo</span>
+                        <span className="text-[9px] text-slate-500 mt-1">Photo</span>
                       </>
                     )}
                   </div>
@@ -733,26 +873,23 @@ export default function InventoryPage() {
                     ref={fileInputRef}
                     onChange={handleImageFileChange}
                     accept="image/*"
-                    style={{ display: 'none' }}
+                    className="hidden"
                   />
-                  <div style={{ flex: 1 }}>
+                  <div className="flex-1">
                     <input
                       type="text"
                       value={prodImage || ''}
                       onChange={(e) => setProdImage(e.target.value)}
-                      placeholder="Ya photo ka URL link paste karein..."
-                      style={{
-                        width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8,
-                        padding: '10px 12px', fontSize: 12, outline: 'none'
-                      }}
+                      placeholder="Or paste image web URL..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900"
                     />
                     {prodImage && (
                       <button
                         type="button"
                         onClick={() => setProdImage(null)}
-                        style={{ fontSize: 11, color: '#e11d48', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0' }}
+                        className="text-[11px] text-rose-600 font-bold mt-1"
                       >
-                        Photo hatayein
+                        Remove Photo
                       </button>
                     )}
                   </div>
@@ -761,71 +898,83 @@ export default function InventoryPage() {
 
               {/* Name */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Product Name *</label>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                  Product Name *
+                </label>
                 <input
                   type="text"
                   required
                   value={prodName}
                   onChange={(e) => setProdName(e.target.value)}
-                  placeholder="Jaise: Fortune Oil 1L, Parle-G 100g"
-                  style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                  placeholder="e.g. Fortune Kachi Ghani Oil 1L"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
                 />
               </div>
 
               {/* Barcode & Brand */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Barcode (Optional)</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Barcode
+                  </label>
                   <input
                     type="text"
                     value={prodBarcode}
                     onChange={(e) => setProdBarcode(e.target.value)}
-                    placeholder="Scan / Type barcode"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                    placeholder="Scan / type barcode"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Brand (Optional)</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Brand
+                  </label>
                   <input
                     type="text"
                     value={prodBrand}
                     onChange={(e) => setProdBrand(e.target.value)}
-                    placeholder="Jaise: Nestle, Amul"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                    placeholder="e.g. Amul, Nestle"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Category */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Category</label>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                  Category
+                </label>
                 <select
                   value={prodCategoryId}
                   onChange={(e) => setProdCategoryId(e.target.value)}
-                  style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                 >
-                  <option value="">-- Category Chunein --</option>
+                  <option value="">-- Choose Category --</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Cost & Selling Price */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* Pricing */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Kharid Rate (₹ Cost)</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Cost Price (₹ Buy)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     value={prodPurchasePrice}
                     onChange={(e) => setProdPurchasePrice(e.target.value)}
                     placeholder="₹ 0.00"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Bechne Ka Rate (₹ MRP) *</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Selling MRP (₹ Sell) *
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -833,30 +982,33 @@ export default function InventoryPage() {
                     value={prodSellingPrice}
                     onChange={(e) => setProdSellingPrice(e.target.value)}
                     placeholder="₹ 0.00"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none', fontWeight: 700 }}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-black text-slate-900 focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Stock & Unit */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Initial Stock</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Initial Stock
+                  </label>
                   <input
                     type="number"
                     step="0.001"
                     value={prodStock}
                     onChange={(e) => setProdStock(e.target.value)}
-                    placeholder="Kitna piece hai?"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Unit</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Unit
+                  </label>
                   <select
                     value={prodUnit}
                     onChange={(e) => setProdUnit(e.target.value)}
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                   >
                     <option value="pcs">Pcs (Piece)</option>
                     <option value="kg">Kg (Kilogram)</option>
@@ -867,21 +1019,21 @@ export default function InventoryPage() {
                 </div>
               </div>
 
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              {/* Buttons */}
+              <div className="pt-3 flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setShowAddProductModal(false); clearProductForm(); }}
-                  style={{ flex: 1, background: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ flex: 1, background: '#059669', color: '#fff', border: 'none', borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: submitting ? 0.6 : 1 }}
+                  className="flex-1 py-3 bg-[#059669] hover:bg-emerald-700 text-white rounded-xl font-black text-xs shadow-sm"
                 >
-                  {submitting ? 'Saving...' : editingProductId ? 'Update Karein' : 'Save Karein'}
+                  {submitting ? 'Saving...' : editingProductId ? 'Update Product' : 'Add to Store'}
                 </button>
               </div>
             </form>
@@ -889,23 +1041,32 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Restock Modal */}
+      {/* ─── RESTOCK MODAL ─── */}
       {showPurchaseModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: '100%', maxWidth: 440 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>📦 Samaan Restock Karein</h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 20px' }}>Naya maal dukaan mein aaya toh yahan add karein.</p>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-black text-sm text-slate-900 m-0">📦 Stock Restock (Maal Aaya)</h3>
+              <button
+                onClick={() => { setShowPurchaseModal(false); clearRestockForm(); }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handlePurchaseSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form onSubmit={handlePurchaseSubmit} className="p-6 space-y-4">
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Samaan Chunein</label>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                  Select Product *
+                </label>
                 <select
                   required
                   value={selectedProductId}
                   onChange={(e) => setSelectedProductId(e.target.value)}
-                  style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                 >
-                  <option value="">-- Item Select Karein --</option>
+                  <option value="">-- Choose Item --</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} (Current: {Number(p.stock)} {p.unit})
@@ -914,9 +1075,11 @@ export default function InventoryPage() {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Kitna Aaya (Qty) *</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Quantity In *
+                  </label>
                   <input
                     type="number"
                     step="0.001"
@@ -924,37 +1087,39 @@ export default function InventoryPage() {
                     min="0.001"
                     value={purchaseQty}
                     onChange={(e) => setPurchaseQty(e.target.value)}
-                    placeholder="Jaise: 20"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                    placeholder="e.g. 24"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Kharid Rate (Optional)</label>
+                  <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                    Cost Rate (Optional)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     value={newPurchasePrice}
                     onChange={(e) => setNewPurchasePrice(e.target.value)}
-                    placeholder="Naya rate?"
-                    style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                    placeholder="₹ New cost"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              <div className="pt-2 flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setShowPurchaseModal(false); clearRestockForm(); }}
-                  style={{ flex: 1, background: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ flex: 1, background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  className="flex-1 py-3 bg-slate-950 hover:bg-slate-800 text-white rounded-xl font-black text-xs shadow-sm"
                 >
-                  {submitting ? 'Saving...' : 'Stock Add Karein'}
+                  {submitting ? 'Saving...' : 'Add to Stock'}
                 </button>
               </div>
             </form>
@@ -962,23 +1127,32 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Stock Audit Modal */}
+      {/* ─── STOCK AUDIT MODAL ─── */}
       {showAuditModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: 28, width: '100%', maxWidth: 440 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>🔍 Stock Check / Fix</h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 20px' }}>Asal dukaan me kitna stock bacha hai, count karke set karein.</p>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="font-black text-sm text-slate-900 m-0">🔍 Stock Audit Fix (Physical Count)</h3>
+              <button
+                onClick={() => { setShowAuditModal(false); clearRestockForm(); }}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <form onSubmit={handleAuditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form onSubmit={handleAuditSubmit} className="p-6 space-y-4">
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Samaan Chunein</label>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                  Select Product *
+                </label>
                 <select
                   required
                   value={selectedProductId}
                   onChange={(e) => setSelectedProductId(e.target.value)}
-                  style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                 >
-                  <option value="">-- Item Select Karein --</option>
+                  <option value="">-- Choose Item --</option>
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} (Computer: {Number(p.stock)} {p.unit})
@@ -988,7 +1162,9 @@ export default function InventoryPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Asal Count (Real Stock) *</label>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                  Real Shelf Count *
+                </label>
                 <input
                   type="number"
                   step="0.001"
@@ -996,36 +1172,38 @@ export default function InventoryPage() {
                   min="0"
                   value={actualStock}
                   onChange={(e) => setActualStock(e.target.value)}
-                  placeholder="Asal mein kitne piece bache hain?"
-                  style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                  placeholder="Asal dukaan me kitna piece bacha hai?"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Reason (Wajah)</label>
+                <label className="block text-[11px] font-black uppercase tracking-wider text-slate-700 mb-1.5">
+                  Reason for Difference
+                </label>
                 <input
                   type="text"
                   value={auditReason}
                   onChange={(e) => setAuditReason(e.target.value)}
-                  placeholder="Jaise: Damage ho gaya, expiry, etc."
-                  style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 13, outline: 'none' }}
+                  placeholder="e.g. Damage, expiry, theft, packaging tear"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900"
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+              <div className="pt-2 flex gap-2">
                 <button
                   type="button"
                   onClick={() => { setShowAuditModal(false); clearRestockForm(); }}
-                  style={{ flex: 1, background: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ flex: 1, background: '#0f172a', color: '#fff', border: 'none', borderRadius: 10, padding: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  className="flex-1 py-3 bg-slate-950 hover:bg-slate-800 text-white rounded-xl font-black text-xs shadow-sm"
                 >
-                  {submitting ? 'Saving...' : 'Stock Sahi Karein'}
+                  {submitting ? 'Saving...' : 'Set Accurate Stock'}
                 </button>
               </div>
             </form>

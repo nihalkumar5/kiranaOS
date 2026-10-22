@@ -6,29 +6,28 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { playSuccessSound } from '@/lib/sounds';
 import { io } from 'socket.io-client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft,
-  DollarSign,
-  FileText,
+  Zap,
+  TrendingUp,
   CreditCard,
+  Coins,
+  Receipt,
+  BookOpen,
+  Boxes,
   AlertTriangle,
   ArrowUpRight,
-  TrendingUp,
-  Activity,
-  Boxes,
-  Zap,
+  ArrowRight,
   ShoppingBag,
-  Bell,
-  Coins,
-  QrCode,
-  LayoutDashboard,
+  Sparkles,
+  Store,
+  ChevronRight,
+  Clock,
   Package,
-  BarChart2,
-  Settings,
-  Globe,
+  Layers,
+  BarChart3,
+  ExternalLink
 } from 'lucide-react';
-import Logo from '@/components/Logo';
 import Sidebar from '@/components/Sidebar';
 
 interface BestSeller {
@@ -57,6 +56,7 @@ interface DashboardStats {
   cashSales: number;
   upiSales: number;
   cardSales: number;
+  totalCreditDue?: number;
   bestSellers: BestSeller[];
   categorySales: CategorySales[];
   lowStock: {
@@ -114,23 +114,11 @@ export default function DashboardPage() {
       playSuccessSound();
       setOrderAlert({
         billNumber: order.billNumber,
-        totalAmount: Number(order.totalAmount).toFixed(2),
+        totalAmount: Number(order.totalAmount).toFixed(0),
         paymentMode: order.paymentMode,
         cashier: order.user?.name || 'Cashier',
       });
       setTimeout(() => setOrderAlert(null), 5000);
-      setStats((prev) => {
-        if (!prev) return null;
-        const total = Number(order.totalAmount);
-        return {
-          ...prev,
-          todaySales: prev.todaySales + total,
-          billsCount: prev.billsCount + 1,
-          cashSales: prev.cashSales + (order.paymentMode === 'CASH' ? total : 0),
-          upiSales: prev.upiSales + (order.paymentMode === 'UPI' ? total : 0),
-          cardSales: prev.cardSales + (order.paymentMode !== 'CASH' && order.paymentMode !== 'UPI' ? total : 0),
-        };
-      });
       fetchStats();
     });
 
@@ -139,276 +127,516 @@ export default function DashboardPage() {
 
   if (authLoading || !user || user.role !== 'ADMIN') {
     return (
-      <div className="flex-1 min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+      <div className="flex-1 min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
       </div>
     );
   }
 
+  const todaySales = stats?.todaySales || 0;
+  const cashSales = stats?.cashSales || 0;
+  const upiSales = stats?.upiSales || 0;
+  const cardSales = stats?.cardSales || 0;
+  const totalCreditDue = stats?.totalCreditDue || 0;
+
+  const cashPct = todaySales > 0 ? Math.round((cashSales / todaySales) * 100) : 0;
+  const upiPct = todaySales > 0 ? Math.round((upiSales / todaySales) * 100) : 0;
+  const avgBillValue = (stats?.billsCount && stats.billsCount > 0) ? Math.round(todaySales / stats.billsCount) : 0;
+
   const maxCategorySales = stats?.categorySales.reduce((max, cat) => Math.max(max, cat.value), 1) || 1;
 
-  const statCards = stats ? [
-    {
-      label: "Today's Revenue",
-      value: `₹${stats.todaySales.toLocaleString('en-IN', { minimumFractionDigits: 0 })}`,
-      sub: '+12.4% vs yesterday',
-      icon: <DollarSign className="w-5 h-5" />,
-    },
-    {
-      label: 'Bills Generated',
-      value: `${stats.billsCount}`,
-      sub: 'Live checkout tracking',
-      icon: <FileText className="w-5 h-5" />,
-    },
-    {
-      label: 'UPI Collections',
-      value: `₹${stats.upiSales.toLocaleString('en-IN', { minimumFractionDigits: 0 })}`,
-      sub: `${stats.todaySales > 0 ? ((stats.upiSales / stats.todaySales) * 100).toFixed(0) : 0}% of total`,
-      icon: <CreditCard className="w-5 h-5" />,
-    },
-    {
-      label: 'Cash Collections',
-      value: `₹${stats.cashSales.toLocaleString('en-IN', { minimumFractionDigits: 0 })}`,
-      sub: `${stats.todaySales > 0 ? ((stats.cashSales / stats.todaySales) * 100).toFixed(0) : 0}% of total`,
-      icon: <Coins className="w-5 h-5" />,
-    },
-  ] : [];
-
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans">
-      {/* Real-time Order Notification */}
-      {orderAlert && (
-        <motion.div 
-          initial={{ opacity: 0, y: 50, scale: 0.9 }} 
-          animate={{ opacity: 1, y: 0, scale: 1 }} 
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="fixed bottom-6 right-6 z-50 bg-white p-4 rounded-2xl shadow-2xl border border-gray-100 flex items-start gap-4 max-w-sm"
-        >
-          <div className="bg-gradient-to-br from-emerald-400 to-emerald-600 p-2.5 rounded-xl text-white shadow-lg shadow-emerald-200">
-            <Zap className="w-5 h-5 animate-pulse" />
-          </div>
-          <div>
-            <p className="font-extrabold text-[13px] text-gray-900 m-0 tracking-wide">NEW ORDER — {orderAlert.paymentMode}</p>
-            <p className="text-[12px] text-gray-500 my-1 font-medium">Bill #{orderAlert.billNumber} by {orderAlert.cashier}</p>
-            <p className="text-[16px] font-black text-emerald-600 m-0">₹{orderAlert.totalAmount}</p>
-          </div>
-        </motion.div>
-      )}
+    <div className="flex min-h-screen bg-[#f8fafc] font-sans antialiased text-slate-900">
+      {/* Live Order Push Toast */}
+      <AnimatePresence>
+        {orderAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 bg-slate-950 text-white p-4 rounded-2xl shadow-2xl border border-slate-800 flex items-center gap-3.5 max-w-sm"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <Zap className="w-5 h-5 fill-current animate-pulse" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                  New Order • {orderAlert.paymentMode}
+                </span>
+                <span className="text-xs font-mono font-black text-white">
+                  ₹{orderAlert.totalAmount}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium truncate m-0 mt-0.5">
+                Bill #{orderAlert.billNumber} • {orderAlert.cashier}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Sidebar />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-0 relative">
-        
-        {/* Dynamic Dark Hero Background */}
-        <div className="absolute top-0 left-0 w-full h-[320px] bg-gradient-to-b from-gray-900 via-gray-900 to-gray-50 z-0 overflow-hidden">
-          <div className="absolute top-[-100px] right-[-100px] w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-pulse"></div>
-          <div className="absolute top-[100px] left-[-50px] w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-[128px] opacity-20"></div>
-        </div>
+      {/* Main Surface */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto pb-24 md:pb-12">
+        {/* Top Header */}
+        <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black shadow-xs">
+              <Store className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black text-slate-900 m-0 tracking-tight">
+                  {store?.name || 'KiranaOS Supermart'}
+                </h1>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Counter
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium m-0 mt-0.5">
+                Real-time sales, payment split, udhaar overview & inventory health.
+              </p>
+            </div>
+          </div>
 
-        {/* Top Bar */}
-        <div className="relative z-10 px-4 md:px-8 pt-8 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-            <p className="text-[14px] text-gray-400 font-semibold mb-1 uppercase tracking-wider">Welcome back 👋</p>
-            <h1 className="text-3xl md:text-4xl font-black text-white m-0 tracking-tight">{store?.name || 'Dashboard'}</h1>
-          </motion.div>
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="flex flex-wrap gap-3">
+          {/* Top Actions */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => router.push('/credit')}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 font-bold text-xs transition-colors shadow-2xs"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+              <span>Udhaar Khata</span>
+            </button>
+
             <button
               onClick={() => router.push('/pos')}
-              className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl font-bold text-[14px] px-5 py-2.5 shadow-lg shadow-emerald-500/30 transition-all active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-black text-xs shadow-sm transition-all group"
             >
-              <Zap className="w-4 h-4 fill-current" /> Open POS
+              <Zap className="w-3.5 h-3.5 text-emerald-400 fill-current" />
+              <span>Open POS [F2]</span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
             </button>
-            <button
-              onClick={() => router.push('/inventory')}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-xl font-bold text-[14px] px-5 py-2.5 border border-white/20 transition-all active:scale-95"
-            >
-              <Boxes className="w-4 h-4" /> Inventory
-            </button>
-          </motion.div>
-        </div>
+          </div>
+        </header>
 
-        {/* Content Area */}
-        <div className="relative z-10 p-4 md:px-8 flex flex-col gap-8">
+        {/* Content Container */}
+        <div className="px-6 py-6 max-w-7xl w-full mx-auto space-y-6">
           {loading ? (
-            <div className="flex justify-center items-center h-[300px]">
-              <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin shadow-lg" />
+            <div className="flex flex-col items-center justify-center h-[350px] gap-3">
+              <div className="w-10 h-10 border-3 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin" />
+              <p className="text-xs font-bold text-slate-400">Loading live business telemetry...</p>
             </div>
           ) : stats ? (
             <>
-              {/* Stat Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                {statCards.map((card, i) => (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    transition={{ duration: 0.4, delay: i * 0.1 }}
-                    key={i} 
-                    className="bg-white/80 backdrop-blur-xl p-5 md:p-6 border border-white/40 rounded-2xl shadow-xl shadow-gray-200/50 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-1 transition-transform"
-                  >
-                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
-                    <div className="w-12 h-12 rounded-xl bg-gray-900 text-white flex items-center justify-center shadow-lg shadow-gray-900/20 relative z-10">
-                      {card.icon}
+              {/* ─── 1. TOP KPI ROW (POLAR / STRIPE BENTO CARDS) ─── */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Today Revenue */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-sm transition-shadow relative overflow-hidden">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      Today&apos;s Revenue
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4" />
                     </div>
-                    <div className="relative z-10">
-                      <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-1">{card.label}</p>
-                      <p className="text-2xl md:text-3xl font-black text-gray-900 m-0 tracking-tight">{card.value}</p>
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-3xl font-black text-slate-900 tracking-tight tabular-nums m-0">
+                      ₹{todaySales.toLocaleString('en-IN')}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/60">
+                        {stats.billsCount} Bills Today
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">
+                        Avg: ₹{avgBillValue}/bill
+                      </span>
                     </div>
-                    <div className="mt-auto pt-4 border-t border-gray-100 relative z-10">
-                      <p className="text-[12px] font-bold text-emerald-600 m-0">{card.sub}</p>
+                  </div>
+                </div>
+
+                {/* 2. Cash In Counter */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      Cash In Counter
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center">
+                      <Coins className="w-4 h-4" />
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-3xl font-black text-slate-900 tracking-tight tabular-nums m-0">
+                      ₹{cashSales.toLocaleString('en-IN')}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-slate-800 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${cashPct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono font-bold text-slate-600 shrink-0">
+                        {cashPct}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. UPI & Digital Payments */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      UPI & Digital
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-3xl font-black text-slate-900 tracking-tight tabular-nums m-0">
+                      ₹{upiSales.toLocaleString('en-IN')}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${upiPct}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono font-bold text-blue-600 shrink-0">
+                        {upiPct}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Market Udhaar / Dues */}
+                <div
+                  onClick={() => router.push('/credit')}
+                  className="bg-gradient-to-br from-amber-50/70 to-white rounded-2xl border border-amber-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-800">
+                      Market Udhaar (Pending)
+                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 border border-amber-200 flex items-center justify-center group-hover:scale-105 transition-transform">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-3xl font-black text-amber-950 tracking-tight tabular-nums m-0">
+                      ₹{totalCreditDue.toLocaleString('en-IN')}
+                    </p>
+                    <div className="flex items-center justify-between mt-2 text-xs font-bold text-amber-800">
+                      <span>Khata Dekhein</span>
+                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Charts Row */}
-              <div className="flex flex-col lg:flex-row gap-6">
-                {/* Category Sales */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }} className="flex-1 lg:w-2/3 bg-white p-6 border border-gray-100 rounded-3xl shadow-xl shadow-gray-200/40">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                      <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><TrendingUp className="w-5 h-5" /></div>
-                      Category Sales
-                    </h3>
-                    <span className="text-[12px] text-gray-500 font-bold bg-gray-50 px-3 py-1 rounded-full">Today (INR)</span>
+              {/* ─── 2. MIDDLE BENTO ROW ─── */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left 7 Columns: Collections Breakdown & Category Sales */}
+                <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)] space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-black text-slate-900 m-0 flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4 text-emerald-600" />
+                        Today&apos;s Payment Collections Split
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium m-0 mt-0.5">
+                        Cash vs UPI vs Cards distribution for counter reconciliation.
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
+                      ₹{todaySales.toLocaleString('en-IN')} Total
+                    </span>
                   </div>
 
-                  {stats.categorySales.length === 0 ? (
-                    <div className="h-32 flex items-center justify-center text-gray-400 text-sm font-medium">No sales recorded yet.</div>
-                  ) : (
-                    <div className="flex flex-col gap-5">
-                      {stats.categorySales.map((cat, i) => {
-                        const gradients = [
-                          'from-blue-500 to-cyan-400',
-                          'from-emerald-500 to-teal-400',
-                          'from-purple-500 to-pink-400',
-                          'from-orange-500 to-yellow-400',
-                          'from-indigo-500 to-blue-400'
-                        ];
-                        const pct = (cat.value / maxCategorySales) * 100;
-                        return (
-                          <div key={cat.name} className="group">
-                            <div className="flex justify-between items-end mb-2">
-                              <span className="text-[13px] font-bold text-gray-700">{cat.name}</span>
-                              <span className="text-[14px] font-black text-gray-900">₹{cat.value.toFixed(0)}</span>
+                  {/* Multi-segment Progress Bar */}
+                  <div className="h-3.5 bg-slate-100 rounded-full overflow-hidden flex p-0.5 gap-1">
+                    <div
+                      title={`Cash: ₹${cashSales}`}
+                      className="bg-slate-900 h-full rounded-full transition-all duration-700"
+                      style={{ width: `${todaySales > 0 ? (cashSales / todaySales) * 100 : 50}%` }}
+                    />
+                    <div
+                      title={`UPI: ₹${upiSales}`}
+                      className="bg-blue-600 h-full rounded-full transition-all duration-700"
+                      style={{ width: `${todaySales > 0 ? (upiSales / todaySales) * 100 : 50}%` }}
+                    />
+                    {cardSales > 0 && (
+                      <div
+                        title={`Cards: ₹${cardSales}`}
+                        className="bg-violet-600 h-full rounded-full transition-all duration-700"
+                        style={{ width: `${(cardSales / todaySales) * 100}%` }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Legend Cards */}
+                  <div className="grid grid-cols-3 gap-3 pt-1">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-900" />
+                        <span className="text-[11px] font-bold text-slate-600 uppercase">Cash</span>
+                      </div>
+                      <p className="text-lg font-black text-slate-900 font-mono m-0">
+                        ₹{cashSales.toLocaleString('en-IN')}
+                      </p>
+                      <span className="text-[11px] font-semibold text-slate-500">{cashPct}% share</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100/80">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                        <span className="text-[11px] font-bold text-blue-900 uppercase">UPI / QR</span>
+                      </div>
+                      <p className="text-lg font-black text-blue-950 font-mono m-0">
+                        ₹{upiSales.toLocaleString('en-IN')}
+                      </p>
+                      <span className="text-[11px] font-semibold text-blue-600">{upiPct}% share</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-2.5 h-2.5 rounded-full bg-violet-600" />
+                        <span className="text-[11px] font-bold text-slate-600 uppercase">Cards/Other</span>
+                      </div>
+                      <p className="text-lg font-black text-slate-900 font-mono m-0">
+                        ₹{cardSales.toLocaleString('en-IN')}
+                      </p>
+                      <span className="text-[11px] font-semibold text-slate-500">
+                        {todaySales > 0 ? ((cardSales / todaySales) * 100).toFixed(0) : 0}% share
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Category Breakdown Horizontal Bars */}
+                  {stats.categorySales && stats.categorySales.length > 0 && (
+                    <div className="pt-4 border-t border-slate-100">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-600 mb-3">
+                        Top Categories by Sales
+                      </h3>
+                      <div className="space-y-2.5">
+                        {stats.categorySales.slice(0, 4).map((cat) => {
+                          const pct = Math.round((cat.value / maxCategorySales) * 100);
+                          return (
+                            <div key={cat.name} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                                <span>{cat.name}</span>
+                                <span className="font-mono text-slate-900">₹{cat.value.toFixed(0)}</span>
+                              </div>
+                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }} 
-                                animate={{ width: `${pct}%` }} 
-                                transition={{ duration: 1, delay: 0.5 + (i * 0.1) }}
-                                className={`h-full bg-gradient-to-r ${gradients[i % gradients.length]} rounded-full shadow-sm`} 
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                </motion.div>
+                </div>
 
-                {/* Best Sellers */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }} className="w-full lg:w-1/3 bg-white p-6 border border-gray-100 rounded-3xl shadow-xl shadow-gray-200/40">
-                  <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
-                    <div className="p-2 bg-orange-50 text-orange-600 rounded-lg"><Zap className="w-5 h-5" /></div>
-                    Top Sellers
-                  </h3>
-                  <div className="flex flex-col gap-3">
-                    {stats.bestSellers.length === 0 ? (
-                      <p className="text-sm text-gray-400 text-center py-8 font-medium">No data yet.</p>
-                    ) : stats.bestSellers.map((item, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-2xl transition-colors border border-transparent hover:border-gray-100 group">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm ${i === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-white' : i === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white' : i === 2 ? 'bg-gradient-to-br from-amber-700 to-yellow-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                          #{i + 1}
+                {/* Right 5 Columns: Low Stock Alert Card */}
+                <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
+                          <AlertTriangle className="w-4 h-4" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-bold text-gray-900 truncate">{item.name}</p>
-                          <p className="text-[11px] font-semibold text-gray-500">MRP ₹{Number(item.price).toFixed(0)}</p>
-                        </div>
-                        <div className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-[11px] font-black flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                          {item.quantitySold} {item.unit}
+                        <div>
+                          <h2 className="text-sm font-black text-slate-900 m-0">
+                            Low Stock Warnings
+                          </h2>
+                          <p className="text-[11px] text-slate-500 font-medium m-0">
+                            Items with 5 or fewer units left.
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Bottom Row */}
-              <div className="flex flex-col lg:flex-row gap-6">
-                {/* Low Stock Alerts */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }} className="flex-1 lg:w-2/3 bg-white p-6 border border-gray-100 rounded-3xl shadow-xl shadow-gray-200/40">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                      <div className="p-2 bg-red-50 text-red-600 rounded-lg"><AlertTriangle className="w-5 h-5" /></div>
-                      Critical Stock
-                      <span className="bg-red-500 text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-sm shadow-red-200 animate-pulse">
-                        {stats.lowStock.count} Alerts
+                      <span className="text-xs font-black text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
+                        {stats.lowStock.count} Alert{stats.lowStock.count !== 1 ? 's' : ''}
                       </span>
-                    </h3>
+                    </div>
+
+                    {stats.lowStock.items.length === 0 ? (
+                      <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <Boxes className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-700 m-0">Stock Levels Healthy</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Koi bhi item khatam nahi hone wala.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
+                        {stats.lowStock.items.slice(0, 5).map((item) => (
+                          <div
+                            key={item.id}
+                            className="p-3 flex items-center justify-between hover:bg-slate-50/80 transition-colors"
+                          >
+                            <div className="min-w-0 flex-1 pr-3">
+                              <p className="text-xs font-bold text-slate-900 truncate m-0">
+                                {item.name}
+                              </p>
+                              <span className="text-[10px] text-rose-600 font-semibold font-mono">
+                                Only {item.stock} {item.unit} remaining
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => router.push('/inventory')}
+                              className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-colors shrink-0"
+                            >
+                              Restock
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-xs text-slate-500 font-medium">Manage all SKUs</span>
                     <button
                       onClick={() => router.push('/inventory')}
-                      className="text-[12px] text-gray-600 font-bold hover:text-gray-900 flex items-center gap-1 transition-colors"
+                      className="text-xs font-black text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
                     >
-                      Inventory <ArrowUpRight className="w-3 h-3" />
+                      <span>Go to Inventory</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
+                </div>
+              </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {stats.lowStock.items.length === 0 ? (
-                      <div className="col-span-full py-8 text-center text-emerald-500 font-bold bg-emerald-50 rounded-2xl border border-emerald-100">
-                        ✨ All stock levels are healthy!
-                      </div>
-                    ) : stats.lowStock.items.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center p-4 bg-white border border-red-100 rounded-2xl shadow-sm hover:shadow-md hover:border-red-200 transition-all group">
-                        <div>
-                          <p className="text-[13px] font-bold text-gray-900 mb-0.5">{item.name}</p>
-                          <p className="text-[11px] font-semibold text-red-500">Action Required</p>
+              {/* ─── 3. BOTTOM BENTO ROW: TOP PRODUCTS & QUICK LAUNCHPAD ─── */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left 8 Cols: Best Selling Items */}
+                <div className="lg:col-span-8 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-sm font-black text-slate-900 m-0 flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                        Today&apos;s Best Selling Products
+                      </h2>
+                      <p className="text-xs text-slate-500 font-medium m-0 mt-0.5">
+                        High velocity items ordered across all counter bills today.
+                      </p>
+                    </div>
+                  </div>
+
+                  {stats.bestSellers.length === 0 ? (
+                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <Receipt className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-600 m-0">No Sales Recorded Today Yet</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Open the POS terminal to start billing customer orders.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
+                      {stats.bestSellers.map((item, index) => (
+                        <div
+                          key={item.name}
+                          className="p-3.5 flex items-center justify-between hover:bg-slate-50/70 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-black shrink-0">
+                              #{index + 1}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-black text-slate-900 truncate m-0">
+                                {item.name}
+                              </p>
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                ₹{item.price} per {item.unit}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-xs font-black font-mono text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-lg">
+                              {item.quantitySold} {item.unit} sold
+                            </span>
+                          </div>
                         </div>
-                        <span className="font-black text-white bg-gradient-to-r from-red-500 to-rose-500 px-3 py-1.5 text-[12px] rounded-lg shadow-sm group-hover:scale-105 transition-transform">
-                          {Number(item.stock).toFixed(1)} {item.unit}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                {/* QR Code */}
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.6 }} className="w-full lg:w-1/3 bg-gradient-to-br from-gray-900 to-black p-6 text-white border border-gray-800 rounded-3xl shadow-2xl shadow-black/40 flex flex-col items-center gap-6 relative overflow-hidden">
-                  <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500 rounded-full mix-blend-screen filter blur-[80px] opacity-30"></div>
-                  
-                  <h3 className="text-lg font-black m-0 flex items-center gap-2 relative z-10 w-full justify-center">
-                    <Zap className="w-5 h-5 text-emerald-400" /> Online Catalog
-                  </h3>
-                  
-                  <div className="bg-white p-3 rounded-2xl shadow-xl shadow-emerald-900/20 relative z-10">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(`http://localhost:3001/store/${store?.id}`)}`}
-                      alt="Store QR"
-                      width={140} height={140}
-                      className="block rounded-lg"
-                    />
+                {/* Right 4 Cols: Quick Actions Launchpad */}
+                <div className="lg:col-span-4 bg-white rounded-3xl border border-slate-200/80 p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+                  <div>
+                    <h2 className="text-sm font-black text-slate-900 m-0 flex items-center gap-2 mb-1">
+                      <Sparkles className="w-4 h-4 text-emerald-600" />
+                      Quick Launchpad
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium mb-4">
+                      Instant shortcuts for rapid counter workflows.
+                    </p>
+
+                    <div className="space-y-2.5">
+                      <button
+                        onClick={() => router.push('/pos')}
+                        className="w-full p-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-left flex items-center justify-between transition-all group shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Zap className="w-4 h-4 text-emerald-400 fill-current" />
+                          <div>
+                            <p className="text-xs font-black m-0 leading-tight">New POS Bill</p>
+                            <span className="text-[10px] text-slate-400">Barcode scanner & quick cash</span>
+                          </div>
+                        </div>
+                        <kbd className="px-2 py-0.5 bg-slate-800 text-[10px] font-mono font-bold text-slate-300 rounded-md">
+                          F2
+                        </kbd>
+                      </button>
+
+                      <button
+                        onClick={() => router.push('/credit')}
+                        className="w-full p-3 bg-amber-50/70 hover:bg-amber-100/70 text-amber-950 rounded-2xl text-left flex items-center justify-between border border-amber-200/60 transition-all group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-4 h-4 text-amber-700" />
+                          <div>
+                            <p className="text-xs font-black m-0 leading-tight">Udhaar Khata</p>
+                            <span className="text-[10px] text-amber-800/80">WhatsApp reminders & passbook</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-amber-700 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+
+                      <button
+                        onClick={() => router.push('/reports')}
+                        className="w-full p-3 bg-slate-50 hover:bg-slate-100 text-slate-900 rounded-2xl text-left flex items-center justify-between border border-slate-200/80 transition-all group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <BarChart3 className="w-4 h-4 text-slate-700" />
+                          <div>
+                            <p className="text-xs font-black m-0 leading-tight">Daily Cash Tally</p>
+                            <span className="text-[10px] text-slate-500">Day close & register audit</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div className="text-center relative z-10">
-                    <p className="text-[13px] font-bold text-gray-200 mb-1">Scan to order from mobile</p>
-                    <p className="text-[11px] font-medium text-gray-400">Share this with your customers</p>
+
+                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-400">KiranaOS v2.4 Enterprise</span>
+                    <span className="text-[11px] font-mono text-emerald-600 font-bold">● System OK</span>
                   </div>
-                  
-                  <a
-                    href={`/store/${store?.id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="relative z-10 w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-[13px] py-3 rounded-xl flex items-center justify-center gap-2 backdrop-blur-md transition-all active:scale-95"
-                  >
-                    Open Storefront <ArrowUpRight className="w-4 h-4" />
-                  </a>
-                </motion.div>
+                </div>
               </div>
             </>
-          ) : (
-            <div className="text-center text-gray-500 py-16 font-semibold">Failed to load dashboard metrics.</div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
