@@ -36,7 +36,9 @@ import {
   Bike,
   ShieldCheck,
   Tag,
-  Phone
+  Phone,
+  Barcode,
+  CornerDownLeft
 } from 'lucide-react';
 
 interface Product {
@@ -102,6 +104,87 @@ const CATEGORY_ITEMS = [
   { id: 'Personal Care', name: 'Personal Care', icon: '🧴' },
   { id: 'Paan Corner', name: 'Paan Corner', icon: '🍃' },
 ];
+
+const POPULAR_SEARCH_CHIPS = [
+  { label: '🥛 Doodh / Milk', query: 'milk' },
+  { label: '🌾 Atta / Flour', query: 'atta' },
+  { label: '🧈 Tel / Oil', query: 'oil' },
+  { label: '☕ Chai / Tea', query: 'tea' },
+  { label: '🍪 Biskut', query: 'biscuit' },
+  { label: '🍜 Maggi', query: 'maggi' },
+  { label: '🍿 Namkeen', query: 'namkeen' },
+  { label: '🧼 Sabun', query: 'soap' },
+  { label: '🍞 Bread', query: 'bread' },
+  { label: '🧂 Namak', query: 'salt' },
+  { label: '🍚 Chawal', query: 'rice' },
+  { label: '🥣 Daal', query: 'dal' },
+];
+
+const HINGLISH_MAP: Record<string, string[]> = {
+  doodh: ['milk', 'amul', 'dairy', 'chaas', 'cow'],
+  dudh: ['milk', 'amul', 'dairy'],
+  milk: ['doodh', 'milk', 'dairy', 'amul'],
+  aata: ['atta', 'flour', 'aashirvaad', 'wheat', 'chakki'],
+  atta: ['atta', 'aata', 'flour', 'aashirvaad', 'wheat', 'chakki'],
+  flour: ['atta', 'aata', 'maida', 'besan'],
+  maida: ['flour', 'maida'],
+  besan: ['gram flour', 'besan'],
+  tel: ['oil', 'fortune', 'mustard', 'refined', 'safola', 'dhara', 'sunflower', 'sarson'],
+  tail: ['oil', 'fortune', 'mustard', 'refined'],
+  sarson: ['mustard', 'oil', 'tel', 'sarso'],
+  oil: ['oil', 'tel', 'fortune', 'mustard', 'refined'],
+  cheeni: ['sugar', 'madhur', 'shakar', 'chini'],
+  chini: ['sugar', 'madhur', 'shakar', 'cheeni'],
+  shakar: ['sugar', 'jaggery', 'gud'],
+  gud: ['jaggery', 'gud', 'sugar'],
+  sugar: ['sugar', 'cheeni', 'chini', 'madhur'],
+  namak: ['salt', 'tata salt', 'sendha'],
+  salt: ['salt', 'namak', 'tata'],
+  chai: ['tea', 'chai', 'red label', 'tata tea', 'wagh bakri', 'taj mahal'],
+  chay: ['tea', 'chai', 'red label', 'tata tea'],
+  tea: ['tea', 'chai', 'chay', 'red label', 'tata tea'],
+  coffee: ['coffee', 'nescafe', 'bru'],
+  biskut: ['biscuit', 'parle', 'good day', 'marie', 'oreo', 'monaco', 'bounce', 'bourbon', 'cookies', 'krackjack'],
+  biscuit: ['biscuit', 'parle', 'good day', 'marie', 'oreo'],
+  biscut: ['biscuit', 'parle', 'good day'],
+  cookie: ['biscuit', 'cookies'],
+  daal: ['dal', 'toor', 'moong', 'chana', 'urad', 'masoor', 'pulses', 'arhar'],
+  dal: ['dal', 'daal', 'toor', 'moong', 'chana', 'urad', 'masoor'],
+  chawal: ['rice', 'basmati', 'kolam', 'daawat', 'india gate', 'sona masoori'],
+  rice: ['rice', 'chawal', 'basmati', 'kolam'],
+  sabun: ['soap', 'dettol', 'lifebuoy', 'dove', 'lux', 'pears', 'cinthol', 'godrej'],
+  soap: ['soap', 'sabun', 'dettol', 'lux', 'dove'],
+  surf: ['detergent', 'surf excel', 'tide', 'ariel', 'rin', 'wheel', 'ghadi', 'powder'],
+  detergent: ['detergent', 'surf', 'tide', 'ariel', 'rin'],
+  dahi: ['curd', 'yogurt', 'dahi'],
+  curd: ['curd', 'dahi'],
+  makkhan: ['butter', 'amul butter', 'butter'],
+  butter: ['butter', 'makkhan', 'amul'],
+  paneer: ['paneer', 'cottage cheese'],
+  ghee: ['ghee', 'amul ghee', 'ananda', 'patanjali', 'gowardhan'],
+  masala: ['masala', 'spices', 'mdh', 'everest', 'catch', 'haldi', 'mirch', 'dhaniya', 'garam masala'],
+  haldi: ['turmeric', 'haldi'],
+  mirch: ['chilli', 'mirch', 'red chilli'],
+  namkeen: ['bhujia', 'namkeen', 'haldiram', 'bikaji', 'mixture', 'sev'],
+  bhujia: ['bhujia', 'namkeen', 'haldiram', 'bikaji'],
+  chips: ['chips', 'lays', 'kurkure', 'bingo', 'wafer', 'potato'],
+  kurkure: ['kurkure', 'chips', 'snacks', 'namkeen'],
+  paani: ['water', 'bisleri', 'kinley', 'aquafina'],
+  pani: ['water', 'bisleri', 'kinley', 'aquafina'],
+  water: ['water', 'bisleri', 'kinley', 'aquafina'],
+  colddrink: ['drink', 'coke', 'pepsi', 'sprite', 'thums up', 'frooti', 'maaza', 'limca', 'fanta', 'beverage', 'cola'],
+  drink: ['coke', 'pepsi', 'sprite', 'frooti', 'drink'],
+  shampoo: ['shampoo', 'clinic plus', 'head & shoulders', 'sunsilk', 'dove', 'pantene'],
+  toothpaste: ['colgate', 'close up', 'pepsodent', 'sensodyne', 'dant kanti', 'paste'],
+  paste: ['toothpaste', 'colgate', 'close up'],
+  maggi: ['maggi', 'noodles', 'yippee'],
+  noodles: ['maggi', 'noodles', 'yippee'],
+  bread: ['bread', 'pav', 'brown bread', 'white bread'],
+  pav: ['pav', 'bread'],
+  anda: ['egg', 'eggs'],
+  ande: ['egg', 'eggs'],
+  egg: ['egg', 'eggs', 'anda'],
+};
 
 export default function PosPage() {
   const { user, store, logout, loading: authLoading } = useAuth();
@@ -174,14 +257,28 @@ export default function PosPage() {
   const [quickAddBuyPrice, setQuickAddBuyPrice] = useState('');
   const [isQuickAdding, setIsQuickAdding] = useState(false);
 
-  // Refs for Autofocus
+  // Refs for Autofocus & click outside
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const discountInputRef = useRef<HTMLInputElement>(null);
   const customerMobileRef = useRef<HTMLInputElement>(null);
 
   // Search Dropdown state
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [searchSelectedIndex, setSearchSelectedIndex] = useState(-1);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  // Close search dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSearchDropdown(false);
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Load products list
   useEffect(() => {
@@ -331,7 +428,14 @@ export default function PosPage() {
       if (e.key === 'F2') {
         e.preventDefault();
         searchInputRef.current?.focus();
+        setIsSearchFocused(true);
+        setShowSearchDropdown(true);
         showToast('Search & Scanner Focused [F2]', 'success');
+      } else if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setIsSearchFocused(true);
+        setShowSearchDropdown(true);
       } else if (e.key === 'F3') {
         e.preventDefault();
         setQuickAddBarcode('');
@@ -674,23 +778,149 @@ export default function PosPage() {
     }
   };
 
-  // Filter products by search and category
+  // Smart Hinglish & Fuzzy Filter for products
   const filteredProducts = useMemo(() => {
-    return productsList.filter((p) => {
-      const matchesSearch =
-        !searchQuery ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.brand && p.brand.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (p.barcode && p.barcode.includes(searchQuery));
+    const rawQuery = searchQuery.trim().toLowerCase();
 
-      if (!matchesSearch) return false;
+    const categoryFilter = (p: Product) => {
       if (selectedCategory === 'ALL') return true;
-
       const catName = (p.category?.name || '').toLowerCase();
       const sel = selectedCategory.toLowerCase();
       return catName.includes(sel) || sel.includes(catName);
+    };
+
+    if (!rawQuery) {
+      return productsList.filter(categoryFilter);
+    }
+
+    const queryTokens = rawQuery.split(/\s+/).filter(Boolean);
+
+    // Expand search terms with Hinglish synonyms
+    const expandedTokens = new Set<string>();
+    queryTokens.forEach((token) => {
+      expandedTokens.add(token);
+      if (HINGLISH_MAP[token]) {
+        HINGLISH_MAP[token].forEach((syn) => expandedTokens.add(syn.toLowerCase()));
+      }
     });
+
+    const scored = productsList
+      .filter(categoryFilter)
+      .map((p) => {
+        const name = p.name.toLowerCase();
+        const brand = (p.brand || '').toLowerCase();
+        const barcode = (p.barcode || '').toLowerCase();
+        const category = (p.category?.name || '').toLowerCase();
+
+        let score = 0;
+
+        // Exact barcode match gets highest priority
+        if (barcode === rawQuery) {
+          score += 1000;
+        } else if (barcode.includes(rawQuery)) {
+          score += 500;
+        }
+
+        // Exact name match
+        if (name === rawQuery) {
+          score += 600;
+        } else if (name.startsWith(rawQuery)) {
+          score += 300;
+        } else if (name.includes(rawQuery)) {
+          score += 200;
+        }
+
+        // Direct token matches
+        for (const token of queryTokens) {
+          if (name.includes(token)) score += 80;
+          if (brand.includes(token)) score += 60;
+          if (category.includes(token)) score += 40;
+        }
+
+        // Hinglish / Synonym matches
+        for (const syn of expandedTokens) {
+          if (!queryTokens.includes(syn)) {
+            if (name.includes(syn)) score += 70;
+            if (brand.includes(syn)) score += 40;
+            if (category.includes(syn)) score += 20;
+          }
+        }
+
+        return { product: p, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.product);
+
+    return scored;
   }, [productsList, searchQuery, selectedCategory]);
+
+  const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const currentValue = e.currentTarget.value;
+    const cleanQuery = currentValue.trim();
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSearchSelectedIndex((prev) =>
+        prev < Math.min(filteredProducts.length, 10) - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSearchSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter' && cleanQuery !== '') {
+      e.preventDefault();
+
+      // Priority 1: Exact barcode match
+      const exactBarcodeProduct = productsList.find((p) => p.barcode === cleanQuery);
+      if (exactBarcodeProduct) {
+        handleGridProductTap(exactBarcodeProduct);
+        setSearchQuery('');
+        setShowSearchDropdown(false);
+        setSearchSelectedIndex(-1);
+        return;
+      }
+
+      // Priority 2: Navigated selection in dropdown
+      if (showSearchDropdown && searchSelectedIndex >= 0 && searchSelectedIndex < filteredProducts.length) {
+        handleGridProductTap(filteredProducts[searchSelectedIndex]);
+        setSearchQuery('');
+        setShowSearchDropdown(false);
+        setSearchSelectedIndex(-1);
+        return;
+      }
+
+      // Priority 3: First matched product
+      if (filteredProducts.length > 0) {
+        handleGridProductTap(filteredProducts[0]);
+        setSearchQuery('');
+        setShowSearchDropdown(false);
+        setSearchSelectedIndex(-1);
+        return;
+      }
+
+      // Priority 4: Try barcode API lookup
+      setSearchQuery('');
+      setShowSearchDropdown(false);
+      setSearchSelectedIndex(-1);
+
+      try {
+        const res = await api.get(`/products/barcode/${cleanQuery}`);
+        if (res.data?.data) {
+          handleGridProductTap(res.data.data);
+          return;
+        }
+      } catch (err) {}
+
+      // Priority 5: Not found anywhere -> Open Quick Add modal
+      playErrorSound();
+      setQuickAddBarcode(/^\d{6,}$/.test(cleanQuery) ? cleanQuery : '');
+      setQuickAddName(/^\d{6,}$/.test(cleanQuery) ? '' : cleanQuery);
+      setShowQuickAddModal(true);
+    } else if (e.key === 'Escape') {
+      setShowSearchDropdown(false);
+      setIsSearchFocused(false);
+    }
+  };
 
   const pendingOnlineCount = onlineOrders.filter((o) => o.status === 'PENDING').length;
 
@@ -739,127 +969,273 @@ export default function PosPage() {
             </div>
           </div>
 
-          {/* Blinkit Big Search Bar */}
-          <div className="flex-1 max-w-2xl relative">
-            <div className="relative flex items-center">
-              <Search className="w-4 h-4 text-gray-400 absolute left-4 pointer-events-none" />
+          {/* Blinkit Big Search Bar & Barcode Scanner Omnibox */}
+          <div ref={searchContainerRef} className="flex-1 max-w-2xl relative">
+            <div className={`relative flex items-center bg-[#f4f6f8] rounded-xl border transition-all duration-150 ${
+              isSearchFocused 
+                ? 'bg-white border-[#0C831F] ring-2 ring-[#0C831F]/20 shadow-xs' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}>
+              {/* Left Icon: Live Barcode or Search */}
+              <div className="pl-3.5 pr-2 flex items-center pointer-events-none shrink-0">
+                {/^\d+$/.test(searchQuery.trim()) ? (
+                  <Barcode className="w-4 h-4 text-[#0C831F] animate-pulse" />
+                ) : (
+                  <Search className={`w-4 h-4 transition-colors ${isSearchFocused ? 'text-[#0C831F]' : 'text-gray-400'}`} />
+                )}
+              </div>
+
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
+                onFocus={() => {
+                  setIsSearchFocused(true);
+                  setShowSearchDropdown(true);
+                }}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
-                  setShowSearchDropdown(e.target.value.trim() !== '');
+                  setShowSearchDropdown(true);
                   setSearchSelectedIndex(0);
                 }}
-                onKeyDown={async (e) => {
-                  const currentValue = e.currentTarget.value;
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setSearchSelectedIndex((prev) =>
-                      prev < Math.min(filteredProducts.length, 10) - 1 ? prev + 1 : prev
-                    );
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setSearchSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
-                  } else if (e.key === 'Enter' && currentValue.trim() !== '') {
-                    e.preventDefault();
-                    if (showSearchDropdown && searchSelectedIndex >= 0 && searchSelectedIndex < filteredProducts.length) {
-                      handleGridProductTap(filteredProducts[searchSelectedIndex]);
-                      setSearchQuery('');
-                      setShowSearchDropdown(false);
-                      setSearchSelectedIndex(-1);
-                      return;
-                    }
-
-                    const cleanQuery = currentValue.trim();
-                    setSearchQuery('');
-                    setShowSearchDropdown(false);
-                    setSearchSelectedIndex(-1);
-
-                    let matchedProduct = productsList.find((p) => p.barcode === cleanQuery);
-                    if (!matchedProduct) {
-                      try {
-                        const res = await api.get(`/products/barcode/${cleanQuery}`);
-                        if (res.data?.data) matchedProduct = res.data.data;
-                      } catch (err) {}
-                    }
-
-                    if (matchedProduct) {
-                      handleGridProductTap(matchedProduct);
-                    } else {
-                      playErrorSound();
-                      setQuickAddBarcode(cleanQuery);
-                      setShowQuickAddModal(true);
-                    }
-                  } else if (e.key === 'Escape') {
-                    setShowSearchDropdown(false);
-                  }
-                }}
-                placeholder='Search "milk", "atta", "chips", "maggi", or scan barcode [F2]'
-                className="w-full bg-[#f4f6f8] border border-gray-200 focus:border-[#0C831F] focus:bg-white rounded-xl pl-11 pr-16 py-2.5 text-xs text-gray-900 placeholder-gray-400 font-medium outline-none transition-all shadow-xs"
+                onKeyDown={handleSearchKeyDown}
+                placeholder='Search "doodh", "atta", "tel", "biskut", "sabun" or scan barcode [F2]'
+                className="w-full bg-transparent py-2.5 pr-2 text-xs text-gray-900 placeholder-gray-400 font-semibold outline-none"
               />
-              <span className="absolute right-3 text-[10px] font-mono font-bold bg-white text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded shadow-xs">
-                F2
-              </span>
+
+              {/* Right Indicators: Clear button & F2 Shortcut pill */}
+              <div className="flex items-center gap-1.5 pr-3 shrink-0">
+                {searchQuery.trim() !== '' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSearchSelectedIndex(-1);
+                      searchInputRef.current?.focus();
+                    }}
+                    className="p-1 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <span className="hidden sm:inline-flex items-center text-[10px] font-mono font-bold bg-white text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded shadow-2xs">
+                  F2
+                </span>
+              </div>
             </div>
 
-            {/* Dropdown Suggestions */}
+            {/* Dropdown Suggestions & Quick Staples */}
             <AnimatePresence>
-              {showSearchDropdown && searchQuery.trim() !== '' && (
+              {showSearchDropdown && (isSearchFocused || searchQuery.trim() !== '') && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[360px] overflow-y-auto divide-y divide-gray-100"
+                  initial={{ opacity: 0, y: 8, scale: 0.99 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.99 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50 divide-y divide-gray-100"
                 >
-                  {filteredProducts.length > 0 ? (
-                    filteredProducts.slice(0, 10).map((product, index) => (
-                      <div
-                        key={product.id}
-                        onClick={() => {
-                          handleGridProductTap(product);
-                          setSearchQuery('');
-                          setShowSearchDropdown(false);
-                          if (typeof window !== "undefined" && window.innerWidth >= 1024) { 
-                            searchInputRef.current?.focus(); 
-                          }
-                        }}
-                        onMouseEnter={() => setSearchSelectedIndex(index)}
-                        className={`flex items-center justify-between p-3 cursor-pointer transition-colors ${
-                          searchSelectedIndex === index ? 'bg-green-50' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-600">
-                            {product.name.slice(0, 2).toUpperCase()}
+                  {/* State 1: Search is Empty -> Show Popular Kirana Staples */}
+                  {searchQuery.trim() === '' ? (
+                    <div className="p-3.5 bg-gradient-to-b from-gray-50/70 to-white">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-gray-500">
+                          <Sparkles className="w-3.5 h-3.5 text-[#0C831F]" />
+                          Popular Quick Staples (English & Hinglish)
+                        </span>
+                        <span className="text-[10px] text-gray-400 font-mono">Press / to focus</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {POPULAR_SEARCH_CHIPS.map((chip) => (
+                          <button
+                            key={chip.label}
+                            type="button"
+                            onClick={() => {
+                              setSearchQuery(chip.query);
+                              setShowSearchDropdown(true);
+                              setSearchSelectedIndex(0);
+                              searchInputRef.current?.focus();
+                            }}
+                            className="px-2.5 py-1.5 bg-white hover:bg-emerald-50 hover:text-[#0C831F] text-gray-700 text-xs font-bold rounded-xl border border-gray-200 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer flex items-center gap-1 active:scale-95"
+                          >
+                            <span>{chip.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+                        <span>⚡ Point barcode scanner anytime to auto-add item</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowSearchDropdown(false);
+                            setQuickAddBarcode('');
+                            setShowQuickAddModal(true);
+                          }}
+                          className="font-bold text-[#0C831F] hover:underline"
+                        >
+                          + New Item [F3]
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* State 2: Query has text */}
+                      {/* Barcode scanner banner if digits */}
+                      {/^\d{6,}$/.test(searchQuery.trim()) && (
+                        <div className="px-3.5 py-2 bg-emerald-50/90 border-b border-emerald-100 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                            <Barcode className="w-4 h-4 text-[#0C831F]" />
+                            <span>Barcode detected: <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200">{searchQuery.trim()}</code></span>
                           </div>
-                          <div>
-                            <p className="text-xs font-bold text-gray-900 leading-tight">{product.name}</p>
-                            <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-                              {product.unit} • Stock: {product.stock}
-                            </p>
-                          </div>
+                          <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                            Press <kbd className="font-mono bg-white px-1.5 py-0.5 rounded border border-emerald-200 shadow-2xs">Enter ↵</kbd> to add
+                          </span>
                         </div>
-                        <span className="text-sm font-mono font-black text-[#0C831F]">
-                          ₹{Number(product.sellingPrice).toFixed(0)}
+                      )}
+
+                      {/* Omnibox Result Counter & Keyboard Hints */}
+                      <div className="px-3.5 py-1.5 bg-gray-50 flex items-center justify-between text-[10px] text-gray-500 font-semibold border-b border-gray-100">
+                        <span>Found {filteredProducts.length} items for "{searchQuery}"</span>
+                        <span className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-gray-400">
+                          <span>↑↓ navigate</span> • <span>Enter to add</span> • <span>Esc close</span>
                         </span>
                       </div>
-                    ))
-                  ) : (
-                    <div className="p-5 text-center">
-                      <p className="text-xs text-gray-400 font-medium">No product found for "{searchQuery}"</p>
-                      <button
-                        onClick={() => {
-                          setQuickAddName(searchQuery);
-                          setShowSearchDropdown(false);
-                          setShowQuickAddModal(true);
-                        }}
-                        className="mt-2 text-xs font-bold text-[#0C831F] hover:underline"
-                      >
-                        + Add "{searchQuery}" to Store [F3]
-                      </button>
-                    </div>
+
+                      {/* Products List */}
+                      {filteredProducts.length > 0 ? (
+                        <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-100">
+                          {filteredProducts.slice(0, 10).map((product, index) => {
+                            const inCartQty = cart[product.barcode || product.id]?.quantity || 0;
+                            const isSelected = searchSelectedIndex === index;
+                            const stockNum = Number(product.stock) || 0;
+
+                            return (
+                              <div
+                                key={product.id}
+                                onMouseEnter={() => setSearchSelectedIndex(index)}
+                                onClick={() => {
+                                  handleGridProductTap(product);
+                                  setSearchQuery('');
+                                  setShowSearchDropdown(false);
+                                  searchInputRef.current?.focus();
+                                }}
+                                className={`flex items-center justify-between p-3 cursor-pointer transition-colors ${
+                                  isSelected ? 'bg-emerald-50/90' : 'hover:bg-gray-50'
+                                }`}
+                              >
+                                {/* Left: Product Thumbnail & Meta */}
+                                <div className="flex items-center gap-3 min-w-0 pr-3">
+                                  <div className="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center font-black text-xs text-gray-700 shrink-0 overflow-hidden">
+                                    {product.image ? (
+                                      <img src={product.image} alt={product.name} className="w-full h-full object-contain p-0.5" />
+                                    ) : (
+                                      <span className="text-gray-500 font-mono font-bold">{product.name.slice(0, 2).toUpperCase()}</span>
+                                    )}
+                                  </div>
+
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <p className="text-xs font-bold text-gray-900 truncate leading-snug">{product.name}</p>
+                                      {product.brand && (
+                                        <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
+                                          {product.brand}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-medium mt-0.5">
+                                      <span>{product.unit || 'unit'}</span>
+                                      <span>•</span>
+                                      {stockNum <= 0 ? (
+                                        <span className="text-rose-600 font-bold">Out of stock</span>
+                                      ) : stockNum <= 5 ? (
+                                        <span className="text-amber-600 font-bold">Low stock ({stockNum})</span>
+                                      ) : (
+                                        <span className="text-emerald-700 font-semibold">{stockNum} in stock</span>
+                                      )}
+                                      {product.barcode && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="font-mono text-gray-400">#{product.barcode}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Right: Price & One-click + ADD Button */}
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <div className="text-right">
+                                    <span className="text-sm font-mono font-black text-[#0C831F]">
+                                      ₹{Number(product.sellingPrice).toFixed(0)}
+                                    </span>
+                                    {Number(product.purchasePrice) > Number(product.sellingPrice) && (
+                                      <p className="text-[10px] text-gray-400 line-through">
+                                        ₹{Number(product.purchasePrice).toFixed(0)}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleGridProductTap(product);
+                                      searchInputRef.current?.focus();
+                                    }}
+                                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                      inCartQty > 0
+                                        ? 'bg-[#0C831F] text-white shadow-xs hover:bg-[#096618]'
+                                        : 'bg-emerald-50 hover:bg-[#0C831F] text-[#0C831F] hover:text-white border border-emerald-200 hover:border-[#0C831F]'
+                                    }`}
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                    <span>{inCartQty > 0 ? `${inCartQty} in Cart` : 'ADD'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-6 text-center">
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2 text-gray-400">
+                            <Search className="w-5 h-5" />
+                          </div>
+                          <p className="text-xs font-bold text-gray-800">No product found for "{searchQuery}"</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">Try Hinglish alias like "doodh", "atta", "tel", or add item</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuickAddName(searchQuery);
+                              setShowSearchDropdown(false);
+                              setShowQuickAddModal(true);
+                            }}
+                            className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0C831F] hover:bg-[#096618] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add "{searchQuery}" to Store [F3]</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Dropdown Footer */}
+                      {filteredProducts.length > 0 && (
+                        <div className="px-3.5 py-2 bg-gray-50 flex items-center justify-between text-[11px] text-gray-500 font-medium border-t border-gray-100">
+                          <span>Don't see your item?</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuickAddName(searchQuery);
+                              setShowSearchDropdown(false);
+                              setShowQuickAddModal(true);
+                            }}
+                            className="text-[#0C831F] hover:underline font-bold text-xs cursor-pointer"
+                          >
+                            + Quick Add "{searchQuery}" [F3]
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </motion.div>
               )}
