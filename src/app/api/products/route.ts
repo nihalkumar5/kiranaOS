@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth';
+import { getCached, setCached, invalidateCache } from '@/lib/cache';
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,35 +9,55 @@ export async function GET(req: NextRequest) {
     if (!user) return unauthorizedResponse();
 
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get('q') || searchParams.get('query') || '';
-    const barcode = searchParams.get('barcode');
+    const query = (
+      searchParams.get('q') ||
+      searchParams.get('query') ||
+      searchParams.get('search') ||
+      ''
+    ).trim();
+    const barcode = searchParams.get('barcode')?.trim();
     const categoryId = searchParams.get('categoryId');
 
-    const whereClause: any = {
-      storeId: user.storeId,
-    };
+    const cacheKey = `products:${user.storeId}`;
+
+    // Fast-path: Check store products cache
+    let allProducts = getCached<any[]>(cacheKey);
+    if (!allProducts) {
+      allProducts = await prisma.product.findMany({
+        where: { storeId: user.storeId },
+        include: { category: true },
+        orderBy: { name: 'asc' },
+      });
+      setCached(cacheKey, allProducts);
+    }
+
+    // Filter in-memory for sub-millisecond response time
+    let filtered = allProducts;
 
     if (barcode) {
-      whereClause.barcode = barcode;
+      filtered = filtered.filter((p) => p.barcode === barcode);
     } else if (query) {
-      whereClause.OR = [
-        { name: { contains: query } },
-        { barcode: { contains: query } },
-        { brand: { contains: query } },
-      ];
+      const q = query.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+          (p.brand && p.brand.toLowerCase().includes(q)),
+      );
     }
 
     if (categoryId && categoryId !== 'all') {
-      whereClause.categoryId = categoryId;
+      filtered = filtered.filter((p) => p.categoryId === categoryId);
     }
 
-    const products = await prisma.product.findMany({
-      where: whereClause,
-      include: { category: true },
-      orderBy: { name: 'asc' },
-    });
-
-    return NextResponse.json({ success: true, data: products });
+    return NextResponse.json(
+      { success: true, data: filtered },
+      {
+        headers: {
+          'Cache-Control': 'private, no-cache, no-transform',
+        },
+      },
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch products' },
@@ -103,6 +124,9 @@ export async function POST(req: NextRequest) {
         },
       });
     }
+
+    // Invalidate product cache for this store
+    invalidateCache(`products:${user.storeId}`);
 
     return NextResponse.json({ success: true, data: product }, { status: 201 });
   } catch (error: any) {

@@ -105,10 +105,16 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!store?.id || !user || user.role !== 'ADMIN') return;
 
-    const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || '';
+    if (!SOCKET_URL) return;
+
     const socket = io(SOCKET_URL, {
       query: { storeId: store.id },
+      transports: ['websocket', 'polling'],
+      autoConnect: false,
     });
+
+    socket.connect();
 
     socket.on('new-order', (order: any) => {
       playSuccessSound();

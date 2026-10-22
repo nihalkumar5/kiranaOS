@@ -139,6 +139,8 @@ model Product {
   @@unique([barcode, storeId])
   @@index([barcode])
   @@index([storeId])
+  @@index([storeId, name])
+  @@index([storeId, categoryId])
 }
 
 model Customer {
@@ -185,6 +187,7 @@ model Order {
   @@unique([billNumber, storeId])
   @@index([storeId])
   @@index([createdAt])
+  @@index([storeId, createdAt])
 }
 
 model OrderItem {
@@ -241,6 +244,7 @@ model OnlineOrder {
 
   @@index([storeId])
   @@index([createdAt])
+  @@index([storeId, createdAt])
 }
 
 model OnlineOrderItem {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth';
+import { invalidateCache } from '@/lib/cache';
 
 export async function GET(
   req: NextRequest,
@@ -67,6 +68,8 @@ export async function PATCH(
       include: { category: true },
     });
 
+    invalidateCache(`products:${user.storeId}`);
+
     return NextResponse.json({ success: true, data: updated });
   } catch (error: any) {
     return NextResponse.json(
@@ -89,6 +92,8 @@ export async function DELETE(
     await prisma.product.deleteMany({
       where: { id, storeId: user.storeId },
     });
+
+    invalidateCache(`products:${user.storeId}`);
 
     return NextResponse.json({ success: true, message: 'Product deleted' });
   } catch (error: any) {

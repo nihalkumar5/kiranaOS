@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth';
+import { invalidateCache } from '@/lib/cache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,6 +77,8 @@ export async function POST(req: NextRequest) {
       data: updateData,
       include: { category: true },
     });
+
+    invalidateCache(`products:${user.storeId}`);
 
     // If stock changed, record transaction in inventory audit
     if (updateData.stock !== undefined && updateData.stock !== beforeStock) {

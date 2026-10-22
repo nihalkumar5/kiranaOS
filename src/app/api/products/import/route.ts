@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth';
+import { invalidateCache } from '@/lib/cache';
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,6 +66,8 @@ export async function POST(req: NextRequest) {
         console.error('Error importing row', item, e);
       }
     }
+
+    invalidateCache(`products:${storeId}`);
 
     return NextResponse.json({ success: true, imported: importedCount });
   } catch (error: any) {

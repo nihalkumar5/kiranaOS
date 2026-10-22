@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth';
+import { invalidateCache } from '@/lib/cache';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +18,11 @@ export async function GET(req: NextRequest) {
       include: {
         customer: true,
         items: {
-          include: { product: true },
+          include: {
+            product: {
+              select: { id: true, name: true, unit: true, brand: true, sellingPrice: true },
+            },
+          },
         },
         user: {
           select: { id: true, name: true, email: true },
@@ -181,6 +186,8 @@ export async function POST(req: NextRequest) {
         user: { select: { id: true, name: true } },
       },
     });
+
+    invalidateCache(`products:${user.storeId}`);
 
     return NextResponse.json({ success: true, data: fullOrder }, { status: 201 });
   } catch (error: any) {

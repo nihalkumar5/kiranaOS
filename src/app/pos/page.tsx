@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useDeferredValue, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -194,6 +194,153 @@ function formatProductName(name: string) {
     .join(' ');
 }
 
+// Ultra-fast memoized Product Card for Blinkit Grid
+const ProductGridCard = React.memo(
+  function ProductGridCard({
+    product: p,
+    cartQty,
+    onTap,
+    onUpdateQty,
+  }: {
+    product: Product;
+    cartQty: number;
+    onTap: (p: Product) => void;
+    onUpdateQty: (key: string, qty: number) => void;
+  }) {
+    const price = Number(p.sellingPrice);
+    const mrp = Math.max(Number(p.purchasePrice || 0), Math.ceil((price * 1.2) / 5) * 5);
+    const discountPercent = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+    const isLowStock = Number(p.stock) <= 5;
+
+    return (
+      <div
+        onClick={() => onTap(p)}
+        className="bg-white rounded-2xl border border-slate-200/80 hover:border-[#0C831F] hover:shadow-lg p-3.5 flex flex-col justify-between shadow-2xs transition-all duration-150 group relative cursor-pointer select-none active:scale-[0.98] transform-gpu"
+      >
+        {/* Top: Stock Status & Discount Pill */}
+        <div className="flex items-center justify-between mb-1.5">
+          <span
+            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              isLowStock
+                ? 'bg-amber-50 text-amber-800 border border-amber-200/80 font-black'
+                : 'bg-slate-100 text-slate-600 font-semibold'
+            }`}
+          >
+            {isLowStock ? `Low (${p.stock})` : `Stock: ${p.stock}`}
+          </span>
+
+          {discountPercent > 0 && (
+            <span className="text-[10px] font-black bg-[#0C831F] text-white px-2 py-0.5 rounded-full shadow-2xs tracking-wide">
+              {discountPercent}% OFF
+            </span>
+          )}
+        </div>
+
+        {/* Product Image Stage */}
+        <div className="w-full h-36 my-1.5 flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/60 rounded-2xl overflow-hidden p-3 border border-slate-100/80 group-hover:border-slate-200 transition-colors relative">
+          {p.image ? (
+            <img
+              src={p.image}
+              alt={p.name}
+              loading="lazy"
+              decoding="async"
+              className="max-h-full max-w-full object-contain mix-blend-multiply drop-shadow-[0_4px_10px_rgba(0,0,0,0.06)] group-hover:drop-shadow-[0_8px_20px_rgba(0,0,0,0.12)] group-hover:scale-108 transition-all duration-300 ease-out"
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/20 text-[#0C831F] font-black text-xl flex items-center justify-center font-mono border border-[#0C831F]/20 shadow-xs">
+              {p.name.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+        </div>
+
+        {/* Product Name & Pack Pill */}
+        <div className="flex-1 flex flex-col justify-end mt-1">
+          {p.brand && (
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5 truncate">
+              {p.brand}
+            </span>
+          )}
+          <h4 className="text-[13px] sm:text-sm font-bold text-slate-900 leading-[1.3] line-clamp-2 min-h-[34px] group-hover:text-[#0C831F] transition-colors tracking-tight">
+            {formatProductName(p.name)}
+          </h4>
+          <div className="mt-1.5">
+            <span className="inline-flex items-center text-[11px] font-bold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200/50">
+              {p.unit || '1 unit'}
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom Price Row & Iconic Blinkit ADD Button */}
+        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
+          {/* Price & MRP */}
+          <div className="flex flex-col">
+            <span className="text-base font-mono font-black text-slate-900 leading-none">
+              ₹{price.toFixed(0)}
+            </span>
+            {mrp > price && (
+              <span className="text-[11px] font-mono text-slate-400 line-through mt-0.5 leading-none">
+                ₹{mrp.toFixed(0)}
+              </span>
+            )}
+          </div>
+
+          {/* BLINKIT FAMOUS ADD BUTTON / STEPPER */}
+          <div onClick={(e) => e.stopPropagation()}>
+            {cartQty > 0 ? (
+              <div className="flex items-center bg-[#0C831F] text-white rounded-xl h-8 px-1.5 shadow-sm">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdateQty(p.barcode || p.id, cartQty - 1);
+                  }}
+                  className="w-6 h-6 flex items-center justify-center hover:bg-[#0a6d1a] rounded-lg text-white font-bold cursor-pointer transition-colors active:scale-90"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="font-mono font-black text-xs px-2.5 text-white">
+                  {cartQty}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onUpdateQty(p.barcode || p.id, cartQty + 1);
+                  }}
+                  className="w-6 h-6 flex items-center justify-center hover:bg-[#0a6d1a] rounded-lg text-white font-bold cursor-pointer transition-colors active:scale-90"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTap(p);
+                }}
+                className="px-4 py-1.5 bg-white border-2 border-[#0C831F] hover:bg-[#0C831F] hover:text-white text-[#0C831F] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-2xs cursor-pointer active:scale-95"
+              >
+                ADD
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.cartQty === next.cartQty &&
+      prev.product.id === next.product.id &&
+      prev.product.sellingPrice === next.product.sellingPrice &&
+      prev.product.stock === next.product.stock &&
+      prev.product.name === next.product.name &&
+      prev.product.image === next.product.image
+    );
+  }
+);
+
 export default function PosPage() {
   const { user, store, logout, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -215,15 +362,23 @@ export default function PosPage() {
     setIsCartLoaded(true);
   }, []);
 
-  // Save cart to localStorage
+  // Save cart to localStorage (debounced)
   useEffect(() => {
-    if (isCartLoaded) {
-      localStorage.setItem('kos_cart', JSON.stringify(cart));
-    }
+    if (!isCartLoaded) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem('kos_cart', JSON.stringify(cart));
+      } catch (e) {
+        console.error('Failed to save cart', e);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [cart, isCartLoaded]);
 
   // Input states & filters
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const [visibleCount, setVisibleCount] = useState(48);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [discount, setDiscount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'CASH' | 'UPI' | 'CARD' | 'CREDIT'>('CASH');
@@ -288,8 +443,18 @@ export default function PosPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Load products list
+  // Load products list (with instant hydration from sessionStorage)
   useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('kos_products_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setProductsList(parsed);
+        }
+      }
+    } catch (e) {}
+
     fetchProducts();
     fetchOnlineOrders();
 
@@ -431,6 +596,11 @@ export default function PosPage() {
   }, []);
 
   // Keyboard shortcuts listener
+  const handleCheckoutRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    handleCheckoutRef.current = handleCheckout;
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
@@ -464,7 +634,7 @@ export default function PosPage() {
         showToast('Mode: UPI QR [F10]', 'success');
       } else if (e.key === 'F12') {
         e.preventDefault();
-        handleCheckout();
+        handleCheckoutRef.current();
       } else if (e.key === 'Escape') {
         e.preventDefault();
         setSearchQuery('');
@@ -481,7 +651,7 @@ export default function PosPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cart, paymentMode, discount, customer, cartTotals]);
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -491,7 +661,13 @@ export default function PosPage() {
   const fetchProducts = async (query = '') => {
     try {
       const response = await api.get(`/products?search=${query}`);
-      setProductsList(response.data.data || []);
+      const list = response.data.data || [];
+      setProductsList(list);
+      if (!query && list.length > 0) {
+        try {
+          sessionStorage.setItem('kos_products_cache', JSON.stringify(list));
+        } catch (e) {}
+      }
     } catch (e) {
       console.error('Failed to load products', e);
     }
@@ -538,7 +714,7 @@ export default function PosPage() {
     }
   };
 
-  const handleGridProductTap = (product: Product) => {
+  const handleGridProductTap = useCallback((product: Product) => {
     const key = product.barcode || product.id;
     setCart((prevCart) => {
       const existing = prevCart[key];
@@ -555,9 +731,9 @@ export default function PosPage() {
         };
       }
     });
-  };
+  }, []);
 
-  const updateQuantity = (key: string, newQty: number) => {
+  const updateQuantity = useCallback((key: string, newQty: number) => {
     setCart((prevCart) => {
       if (newQty <= 0) {
         const next = { ...prevCart };
@@ -569,7 +745,7 @@ export default function PosPage() {
         [key]: { ...prevCart[key], quantity: newQty },
       };
     });
-  };
+  }, []);
 
   const clearCart = () => {
     setCart({});
@@ -786,9 +962,9 @@ export default function PosPage() {
     }
   };
 
-  // Smart Hinglish & Fuzzy Filter for products
+  // Smart Hinglish & Fuzzy Filter for products (non-blocking with deferred query)
   const filteredProducts = useMemo(() => {
-    const rawQuery = searchQuery.trim().toLowerCase();
+    const rawQuery = deferredSearchQuery.trim().toLowerCase();
 
     const categoryFilter = (p: Product) => {
       if (selectedCategory === 'ALL') return true;
@@ -861,7 +1037,12 @@ export default function PosPage() {
       .map((item) => item.product);
 
     return scored;
-  }, [productsList, searchQuery, selectedCategory]);
+  }, [productsList, deferredSearchQuery, selectedCategory]);
+
+  // Reset pagination chunk when query/category changes
+  useEffect(() => {
+    setVisibleCount(48);
+  }, [deferredSearchQuery, selectedCategory]);
 
   const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     const currentValue = e.currentTarget.value;
@@ -1362,132 +1543,34 @@ export default function PosPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5 pb-24 lg:pb-6">
-                {filteredProducts.map((p) => {
-                  const cartQty = cart[p.barcode || p.id]?.quantity || 0;
-                  const price = Number(p.sellingPrice);
-                  const mrp = Math.max(Number(p.purchasePrice || 0), Math.ceil((price * 1.2) / 5) * 5);
-                  const discountPercent = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5 pb-8 lg:pb-6">
+                  {filteredProducts.slice(0, visibleCount).map((p) => {
+                    const cartQty = cart[p.barcode || p.id]?.quantity || 0;
+                    return (
+                      <ProductGridCard
+                        key={p.id}
+                        product={p}
+                        cartQty={cartQty}
+                        onTap={handleGridProductTap}
+                        onUpdateQty={updateQuantity}
+                      />
+                    );
+                  })}
+                </div>
 
-                  return (
-                    <motion.div
-                      key={p.id}
-                      layout
-                      onClick={() => handleGridProductTap(p)}
-                      className="bg-white rounded-2xl border border-slate-200/80 hover:border-[#0C831F] hover:shadow-lg p-3.5 flex flex-col justify-between shadow-2xs transition-all duration-200 group relative cursor-pointer select-none active:scale-[0.98]"
+                {filteredProducts.length > visibleCount && (
+                  <div className="flex justify-center pb-24 lg:pb-8">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleCount((prev) => prev + 48)}
+                      className="px-6 py-2.5 rounded-full bg-white hover:bg-slate-50 border border-slate-300 hover:border-[#0C831F] text-slate-800 text-xs font-bold shadow-xs transition-all cursor-pointer select-none active:scale-95"
                     >
-                      {/* Top: Stock Status & Discount Pill */}
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            Number(p.stock) <= 5
-                              ? 'bg-amber-50 text-amber-800 border border-amber-200/80 font-black'
-                              : 'bg-slate-100 text-slate-600 font-semibold'
-                          }`}
-                        >
-                          {Number(p.stock) <= 5 ? `Low (${p.stock})` : `Stock: ${p.stock}`}
-                        </span>
-
-                        {discountPercent > 0 && (
-                          <span className="text-[10px] font-black bg-[#0C831F] text-white px-2 py-0.5 rounded-full shadow-2xs tracking-wide">
-                            {discountPercent}% OFF
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Product Image Stage */}
-                      <div className="w-full h-36 my-1.5 flex items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/60 rounded-2xl overflow-hidden p-3 border border-slate-100/80 group-hover:border-slate-200 transition-colors relative">
-                        {p.image ? (
-                          <img
-                            src={p.image}
-                            alt={p.name}
-                            loading="lazy"
-                            className="max-h-full max-w-full object-contain mix-blend-multiply drop-shadow-[0_4px_10px_rgba(0,0,0,0.06)] group-hover:drop-shadow-[0_8px_20px_rgba(0,0,0,0.12)] group-hover:scale-108 transition-all duration-300 ease-out"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/20 text-[#0C831F] font-black text-xl flex items-center justify-center font-mono border border-[#0C831F]/20 shadow-xs">
-                            {p.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Product Name & Pack Pill */}
-                      <div className="flex-1 flex flex-col justify-end mt-1">
-                        {p.brand && (
-                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-0.5 truncate">
-                            {p.brand}
-                          </span>
-                        )}
-                        <h4 className="text-[13px] sm:text-sm font-bold text-slate-900 leading-[1.3] line-clamp-2 min-h-[34px] group-hover:text-[#0C831F] transition-colors tracking-tight">
-                          {formatProductName(p.name)}
-                        </h4>
-                        <div className="mt-1.5">
-                          <span className="inline-flex items-center text-[11px] font-bold text-slate-600 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200/50">
-                            {p.unit || '1 unit'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Bottom Price Row & Iconic Blinkit ADD Button */}
-                      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-slate-100">
-                        {/* Price & MRP */}
-                        <div className="flex flex-col">
-                          <span className="text-base font-mono font-black text-slate-900 leading-none">
-                            ₹{price.toFixed(0)}
-                          </span>
-                          {mrp > price && (
-                            <span className="text-[11px] font-mono text-slate-400 line-through mt-0.5 leading-none">
-                              ₹{mrp.toFixed(0)}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* BLINKIT FAMOUS ADD BUTTON / STEPPER */}
-                        <div onClick={(e) => e.stopPropagation()}>
-                          {cartQty > 0 ? (
-                            <div className="flex items-center bg-[#0C831F] text-white rounded-xl h-8 px-1.5 shadow-sm">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateQuantity(p.barcode || p.id, cartQty - 1);
-                                }}
-                                className="w-6 h-6 flex items-center justify-center hover:bg-[#0a6d1a] rounded-lg text-white font-bold cursor-pointer transition-colors active:scale-90"
-                              >
-                                <Minus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="font-mono font-black text-xs px-2.5 text-white">
-                                {cartQty}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateQuantity(p.barcode || p.id, cartQty + 1);
-                                }}
-                                className="w-6 h-6 flex items-center justify-center hover:bg-[#0a6d1a] rounded-lg text-white font-bold cursor-pointer transition-colors active:scale-90"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleGridProductTap(p);
-                              }}
-                              className="px-4 py-1.5 bg-white border-2 border-[#0C831F] hover:bg-[#0C831F] hover:text-white text-[#0C831F] rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-2xs cursor-pointer active:scale-95"
-                            >
-                              ADD
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                      Load More Items ({filteredProducts.length - visibleCount} remaining)
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </main>
 

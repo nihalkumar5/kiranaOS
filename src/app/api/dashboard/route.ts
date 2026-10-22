@@ -20,8 +20,23 @@ export async function GET(req: NextRequest) {
         createdAt: { gte: todayStart, lte: todayEnd },
         status: 'COMPLETED',
       },
-      include: {
-        items: { include: { product: { include: { category: true } } } },
+      select: {
+        totalAmount: true,
+        paymentMode: true,
+        items: {
+          select: {
+            price: true,
+            quantity: true,
+            product: {
+              select: {
+                name: true,
+                brand: true,
+                unit: true,
+                category: { select: { name: true } },
+              },
+            },
+          },
+        },
       },
     });
 

@@ -14,9 +14,16 @@ export async function GET(req: NextRequest) {
       where: { storeId: user.storeId },
       include: {
         customer: true,
-        items: { include: { product: true } },
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, unit: true, sellingPrice: true, brand: true },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
+      take: 50,
     });
 
     return NextResponse.json({ success: true, data: onlineOrders });
