@@ -106,18 +106,18 @@ const CATEGORY_ITEMS = [
 ];
 
 const POPULAR_SEARCH_CHIPS = [
-  { label: '🥛 Doodh / Milk', query: 'milk' },
-  { label: '🌾 Atta / Flour', query: 'atta' },
-  { label: '🧈 Tel / Oil', query: 'oil' },
-  { label: '☕ Chai / Tea', query: 'tea' },
-  { label: '🍪 Biskut', query: 'biscuit' },
-  { label: '🍜 Maggi', query: 'maggi' },
-  { label: '🍿 Namkeen', query: 'namkeen' },
-  { label: '🧼 Sabun', query: 'soap' },
-  { label: '🍞 Bread', query: 'bread' },
-  { label: '🧂 Namak', query: 'salt' },
-  { label: '🍚 Chawal', query: 'rice' },
-  { label: '🥣 Daal', query: 'dal' },
+  { label: 'Milk (Doodh)', query: 'milk' },
+  { label: 'Atta', query: 'atta' },
+  { label: 'Cooking Oil', query: 'oil' },
+  { label: 'Chai Patti', query: 'tea' },
+  { label: 'Biscuits', query: 'biscuit' },
+  { label: 'Maggi', query: 'maggi' },
+  { label: 'Namkeen', query: 'namkeen' },
+  { label: 'Soap (Sabun)', query: 'soap' },
+  { label: 'Bread', query: 'bread' },
+  { label: 'Tata Salt', query: 'salt' },
+  { label: 'Rice (Chawal)', query: 'rice' },
+  { label: 'Dal', query: 'dal' },
 ];
 
 const HINGLISH_MAP: Record<string, string[]> = {
@@ -1165,17 +1165,17 @@ export default function PosPage() {
 
           {/* Blinkit Big Search Bar & Barcode Scanner Omnibox */}
           <div ref={searchContainerRef} className="flex-1 max-w-2xl relative">
-            <div className={`relative flex items-center bg-[#f4f6f8] rounded-xl border transition-all duration-150 ${
+            <div className={`relative flex items-center bg-slate-100/80 hover:bg-slate-100 rounded-2xl border transition-all duration-150 ${
               isSearchFocused 
-                ? 'bg-white border-[#0C831F] ring-2 ring-[#0C831F]/20 shadow-xs' 
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'bg-white border-[#0C831F] ring-3 ring-[#0C831F]/15 shadow-sm' 
+                : 'border-slate-200/80 hover:border-slate-300'
             }`}>
               {/* Left Icon: Live Barcode or Search */}
               <div className="pl-3.5 pr-2 flex items-center pointer-events-none shrink-0">
                 {/^\d+$/.test(searchQuery.trim()) ? (
                   <Barcode className="w-4 h-4 text-[#0C831F] animate-pulse" />
                 ) : (
-                  <Search className={`w-4 h-4 transition-colors ${isSearchFocused ? 'text-[#0C831F]' : 'text-gray-400'}`} />
+                  <Search className={`w-4 h-4 transition-colors ${isSearchFocused ? 'text-[#0C831F]' : 'text-slate-400'}`} />
                 )}
               </div>
 
@@ -1197,8 +1197,8 @@ export default function PosPage() {
                   setSearchSelectedIndex(-1);
                 }}
                 onKeyDown={handleSearchKeyDown}
-                placeholder='Search "doodh", "atta", "tel", "biskut", "sabun" or scan barcode [F2]'
-                className="w-full bg-transparent py-2.5 pr-2 text-xs text-gray-900 placeholder-gray-400 font-semibold outline-none"
+                placeholder="Search products, brands, or scan barcode..."
+                className="w-full bg-transparent py-2.5 pr-2 text-xs sm:text-[13px] text-slate-800 placeholder-slate-400 font-medium outline-none"
               />
 
               {/* Right Indicators: Clear button & F2 Shortcut pill */}
@@ -1211,12 +1211,12 @@ export default function PosPage() {
                       setSearchSelectedIndex(-1);
                       searchInputRef.current?.focus();
                     }}
-                    className="p-1 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
+                    className="p-1 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <span className="hidden sm:inline-flex items-center text-[10px] font-mono font-bold bg-white text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded shadow-2xs">
+                <span className="hidden sm:inline-flex items-center text-[10px] font-mono font-bold bg-white text-slate-400 border border-slate-200/90 px-1.5 py-0.5 rounded-md shadow-2xs">
                   F2
                 </span>
               </div>
@@ -1226,22 +1226,22 @@ export default function PosPage() {
             <AnimatePresence>
               {showSearchDropdown && (isSearchFocused || searchQuery.trim() !== '') && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.99 }}
+                  initial={{ opacity: 0, y: 6, scale: 0.99 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.99 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.99 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50 divide-y divide-gray-100"
+                  className="absolute top-full left-0 right-0 mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden z-50 divide-y divide-slate-100"
                 >
-                  {/* State 1: Search is Empty -> Show Popular Kirana Staples */}
+                  {/* State 1: Search is Empty -> Show Clean Trending Kirana Staples */}
                   {searchQuery.trim() === '' ? (
-                    <div className="p-3.5 bg-gradient-to-b from-gray-50/70 to-white">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-gray-500">
-                          <Sparkles className="w-3.5 h-3.5 text-[#0C831F]" />
-                          Popular Quick Staples (English & Hinglish)
+                    <div className="p-4 bg-white">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          Trending Staples
                         </span>
-                        <span className="text-[10px] text-gray-400 font-mono">Press / to focus</span>
+                        <span className="text-[10px] text-slate-400 font-mono">Press / to focus</span>
                       </div>
+
                       <div className="flex flex-wrap gap-1.5">
                         {POPULAR_SEARCH_CHIPS.map((chip) => (
                           <button
@@ -1253,14 +1253,18 @@ export default function PosPage() {
                               setIsSearchFocused(false);
                               setSearchSelectedIndex(-1);
                             }}
-                            className="px-2.5 py-1.5 bg-white hover:bg-emerald-50 hover:text-[#0C831F] text-gray-700 text-xs font-bold rounded-xl border border-gray-200 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer flex items-center gap-1 active:scale-95"
+                            className="px-3 py-1.5 bg-slate-50 hover:bg-emerald-50/80 hover:text-[#0C831F] hover:border-emerald-300 text-slate-700 text-xs font-semibold rounded-full border border-slate-200/70 transition-all shadow-2xs cursor-pointer active:scale-95"
                           >
-                            <span>{chip.label}</span>
+                            {chip.label}
                           </button>
                         ))}
                       </div>
-                      <div className="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
-                        <span>⚡ Point barcode scanner anytime to auto-add item</span>
+
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+                        <div className="flex items-center gap-1.5 text-slate-500">
+                          <Barcode className="w-3.5 h-3.5 text-[#0C831F]" />
+                          <span>Barcode scanner ready</span>
+                        </div>
                         <button
                           type="button"
                           onClick={() => {
@@ -1268,9 +1272,10 @@ export default function PosPage() {
                             setQuickAddBarcode('');
                             setShowQuickAddModal(true);
                           }}
-                          className="font-bold text-[#0C831F] hover:underline"
+                          className="font-bold text-[#0C831F] hover:text-[#096618] flex items-center gap-1 transition-colors cursor-pointer"
                         >
-                          + New Item [F3]
+                          <span>+ New Item</span>
+                          <kbd className="font-mono text-[10px] text-slate-400 bg-slate-100 border border-slate-200 px-1 py-0.5 rounded">F3</kbd>
                         </button>
                       </div>
                     </div>
@@ -1291,16 +1296,16 @@ export default function PosPage() {
                       )}
 
                       {/* Omnibox Result Counter & Keyboard Hints */}
-                      <div className="px-3.5 py-1.5 bg-gray-50 flex items-center justify-between text-[10px] text-gray-500 font-semibold border-b border-gray-100">
-                        <span>Found {filteredProducts.length} items for "{searchQuery}"</span>
-                        <span className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-gray-400">
+                      <div className="px-4 py-2 bg-slate-50/80 flex items-center justify-between text-[11px] text-slate-500 font-semibold border-b border-slate-100">
+                        <span>{filteredProducts.length} items found for "{searchQuery}"</span>
+                        <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
                           <span>↑↓ navigate</span> • <span>Enter to add</span> • <span>Esc close</span>
                         </span>
                       </div>
 
                       {/* Products List */}
                       {filteredProducts.length > 0 ? (
-                        <div className="max-h-[380px] overflow-y-auto divide-y divide-gray-100">
+                        <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
                           {filteredProducts.slice(0, 10).map((product, index) => {
                             const inCartQty = cart[product.barcode || product.id]?.quantity || 0;
                             const isSelected = searchSelectedIndex === index;
@@ -1316,31 +1321,31 @@ export default function PosPage() {
                                   setShowSearchDropdown(false);
                                   searchInputRef.current?.focus();
                                 }}
-                                className={`flex items-center justify-between p-3 cursor-pointer transition-colors ${
-                                  isSelected ? 'bg-emerald-50/90' : 'hover:bg-gray-50'
+                                className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${
+                                  isSelected ? 'bg-emerald-50/80 border-l-2 border-[#0C831F]' : 'hover:bg-slate-50'
                                 }`}
                               >
                                 {/* Left: Product Thumbnail & Meta */}
                                 <div className="flex items-center gap-3 min-w-0 pr-3">
-                                  <div className="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center font-black text-xs text-gray-700 shrink-0 overflow-hidden">
+                                  <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-xs text-slate-700 shrink-0 overflow-hidden">
                                     {product.image ? (
                                       <img src={product.image} alt={product.name} className="w-full h-full object-contain p-0.5" />
                                     ) : (
-                                      <span className="text-gray-500 font-mono font-bold">{product.name.slice(0, 2).toUpperCase()}</span>
+                                      <span className="text-slate-500 font-mono font-bold">{product.name.slice(0, 2).toUpperCase()}</span>
                                     )}
                                   </div>
 
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                      <p className="text-xs font-bold text-gray-900 truncate leading-snug">{formatProductName(product.name)}</p>
+                                      <p className="text-xs font-bold text-slate-900 truncate leading-snug">{formatProductName(product.name)}</p>
                                       {product.brand && (
-                                        <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded">
+                                        <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
                                           {product.brand}
                                         </span>
                                       )}
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-[10px] text-gray-500 font-medium mt-0.5">
+                                    <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium mt-0.5">
                                       <span>{product.unit || 'unit'}</span>
                                       <span>•</span>
                                       {stockNum <= 0 ? (
@@ -1353,7 +1358,7 @@ export default function PosPage() {
                                       {product.barcode && (
                                         <>
                                           <span>•</span>
-                                          <span className="font-mono text-gray-400">#{product.barcode}</span>
+                                          <span className="font-mono text-slate-400">#{product.barcode}</span>
                                         </>
                                       )}
                                     </div>
@@ -1367,7 +1372,7 @@ export default function PosPage() {
                                       ₹{Number(product.sellingPrice).toFixed(0)}
                                     </span>
                                     {Number(product.purchasePrice) > Number(product.sellingPrice) && (
-                                      <p className="text-[10px] text-gray-400 line-through">
+                                      <p className="text-[10px] text-slate-400 line-through">
                                         ₹{Number(product.purchasePrice).toFixed(0)}
                                       </p>
                                     )}
@@ -1396,11 +1401,11 @@ export default function PosPage() {
                         </div>
                       ) : (
                         <div className="p-6 text-center">
-                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-2 text-gray-400">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
                             <Search className="w-5 h-5" />
                           </div>
-                          <p className="text-xs font-bold text-gray-800">No product found for "{searchQuery}"</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">Try Hinglish alias like "doodh", "atta", "tel", or add item</p>
+                          <p className="text-xs font-bold text-slate-800">No product found for "{searchQuery}"</p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Try Hinglish alias like "doodh", "atta", "tel", or add item</p>
                           <button
                             type="button"
                             onClick={() => {
@@ -1418,7 +1423,7 @@ export default function PosPage() {
 
                       {/* Dropdown Footer */}
                       {filteredProducts.length > 0 && (
-                        <div className="px-3.5 py-2 bg-gray-50 flex items-center justify-between text-[11px] text-gray-500 font-medium border-t border-gray-100">
+                        <div className="px-4 py-2.5 bg-slate-50/80 flex items-center justify-between text-xs text-slate-500 font-medium border-t border-slate-100">
                           <span>Don't see your item?</span>
                           <button
                             type="button"
