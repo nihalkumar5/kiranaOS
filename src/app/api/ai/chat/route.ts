@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthUser, unauthorizedResponse } from '@/lib/auth';
+import { processKiranaCopilotWithGemini } from '@/lib/ai-assistant';
 
 const HindiSynonyms: Record<string, string> = {
   namak: 'salt',
@@ -80,6 +81,18 @@ export async function POST(req: NextRequest) {
         reply: 'नमस्ते! बोलिए, क्या मदद करूँ? आप किसी भी सामान का खरीद दाम, बिक्री रेट या स्टॉक पूछ और बदल सकते हैं।',
         speechText: 'Namaste! boliye, kya madad karu?',
       });
+    }
+
+    // ─── GEMINI AI COPILOT (PRIMARY LLM ENGINE) ───
+    if (process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY) {
+      try {
+        const geminiRes = await processKiranaCopilotWithGemini(rawMessage, user.storeId);
+        if (geminiRes) {
+          return NextResponse.json(geminiRes);
+        }
+      } catch (geminiError) {
+        console.error('Gemini Copilot fallback triggered:', geminiError);
+      }
     }
 
     // Normalize text
