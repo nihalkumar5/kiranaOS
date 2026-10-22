@@ -866,21 +866,48 @@ export default function PosPage() {
       );
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSearchSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
-    } else if (e.key === 'Enter' && cleanQuery !== '') {
+      setSearchSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter') {
       e.preventDefault();
 
-      // Priority 1: Exact barcode match
-      const exactBarcodeProduct = productsList.find((p) => p.barcode === cleanQuery);
-      if (exactBarcodeProduct) {
-        handleGridProductTap(exactBarcodeProduct);
-        setSearchQuery('');
+      if (!cleanQuery) {
         setShowSearchDropdown(false);
-        setSearchSelectedIndex(-1);
+        setIsSearchFocused(false);
         return;
       }
 
-      // Priority 2: Navigated selection in dropdown
+      // Barcode auto-scanner case (digits 6+)
+      const isBarcode = /^\d{6,}$/.test(cleanQuery);
+      if (isBarcode) {
+        const exactBarcodeProduct = productsList.find((p) => p.barcode === cleanQuery);
+        if (exactBarcodeProduct) {
+          handleGridProductTap(exactBarcodeProduct);
+          setSearchQuery('');
+          setShowSearchDropdown(false);
+          setSearchSelectedIndex(-1);
+          return;
+        }
+
+        try {
+          const res = await api.get(`/products/barcode/${cleanQuery}`);
+          if (res.data?.data) {
+            handleGridProductTap(res.data.data);
+            setSearchQuery('');
+            setShowSearchDropdown(false);
+            setSearchSelectedIndex(-1);
+            return;
+          }
+        } catch (err) {}
+
+        playErrorSound();
+        setQuickAddBarcode(cleanQuery);
+        setShowQuickAddModal(true);
+        setSearchQuery('');
+        setShowSearchDropdown(false);
+        return;
+      }
+
+      // If user explicitly navigated with Arrow keys in dropdown
       if (showSearchDropdown && searchSelectedIndex >= 0 && searchSelectedIndex < filteredProducts.length) {
         handleGridProductTap(filteredProducts[searchSelectedIndex]);
         setSearchQuery('');
@@ -889,36 +916,14 @@ export default function PosPage() {
         return;
       }
 
-      // Priority 3: First matched product
-      if (filteredProducts.length > 0) {
-        handleGridProductTap(filteredProducts[0]);
-        setSearchQuery('');
-        setShowSearchDropdown(false);
-        setSearchSelectedIndex(-1);
-        return;
-      }
-
-      // Priority 4: Try barcode API lookup
-      setSearchQuery('');
+      // Regular text search: close dropdown, keep grid filtered to view products
       setShowSearchDropdown(false);
+      setIsSearchFocused(false);
       setSearchSelectedIndex(-1);
-
-      try {
-        const res = await api.get(`/products/barcode/${cleanQuery}`);
-        if (res.data?.data) {
-          handleGridProductTap(res.data.data);
-          return;
-        }
-      } catch (err) {}
-
-      // Priority 5: Not found anywhere -> Open Quick Add modal
-      playErrorSound();
-      setQuickAddBarcode(/^\d{6,}$/.test(cleanQuery) ? cleanQuery : '');
-      setQuickAddName(/^\d{6,}$/.test(cleanQuery) ? '' : cleanQuery);
-      setShowQuickAddModal(true);
     } else if (e.key === 'Escape') {
       setShowSearchDropdown(false);
       setIsSearchFocused(false);
+      setSearchSelectedIndex(-1);
     }
   };
 
@@ -993,10 +998,14 @@ export default function PosPage() {
                   setIsSearchFocused(true);
                   setShowSearchDropdown(true);
                 }}
+                onClick={() => {
+                  setIsSearchFocused(true);
+                  setShowSearchDropdown(true);
+                }}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setShowSearchDropdown(true);
-                  setSearchSelectedIndex(0);
+                  setSearchSelectedIndex(-1);
                 }}
                 onKeyDown={handleSearchKeyDown}
                 placeholder='Search "doodh", "atta", "tel", "biskut", "sabun" or scan barcode [F2]'
@@ -1051,9 +1060,9 @@ export default function PosPage() {
                             type="button"
                             onClick={() => {
                               setSearchQuery(chip.query);
-                              setShowSearchDropdown(true);
-                              setSearchSelectedIndex(0);
-                              searchInputRef.current?.focus();
+                              setShowSearchDropdown(false);
+                              setIsSearchFocused(false);
+                              setSearchSelectedIndex(-1);
                             }}
                             className="px-2.5 py-1.5 bg-white hover:bg-emerald-50 hover:text-[#0C831F] text-gray-700 text-xs font-bold rounded-xl border border-gray-200 hover:border-emerald-300 transition-all shadow-2xs cursor-pointer flex items-center gap-1 active:scale-95"
                           >
