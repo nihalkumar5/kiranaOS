@@ -21,6 +21,7 @@ import {
   Clock,
   ShoppingCart,
   ArrowRight,
+  ArrowLeft,
   CheckCircle,
   XCircle,
   X,
@@ -394,8 +395,15 @@ export default function PosPage() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [isGuest, setIsGuest] = useState(true);
 
-  // Blinkit Cart Drawer Toggle (visible on desktop side-by-side or sliding drawer)
-  const [showCartDrawer, setShowCartDrawer] = useState(true);
+  // Blinkit Cart Drawer Toggle (visible on desktop side-by-side or mobile bottom sheet)
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
+
+  useEffect(() => {
+    // Open by default on desktop screens (>= 1024px)
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setShowCartDrawer(true);
+    }
+  }, []);
 
   // UI state
   const [productsList, setProductsList] = useState<Product[]>([]);
@@ -1150,10 +1158,10 @@ export default function PosPage() {
         )}
 
         {/* BLINKIT POS TOP BAR */}
-        <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-2.5 flex items-center justify-between gap-4 flex-shrink-0 z-30 no-print shadow-xs">
+        <header className="bg-white border-b border-gray-200 px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 flex-shrink-0 z-30 no-print shadow-xs">
           {/* Store Status Pill */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-2 bg-[#f4f6f8] px-3 py-1.5 rounded-xl border border-gray-200">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 bg-[#f4f6f8] px-3 py-1.5 rounded-xl border border-gray-200">
               <span className="w-2 h-2 rounded-full bg-[#0C831F] animate-pulse" />
               <span className="text-xs font-bold text-gray-900 truncate max-w-[180px]">
                 {store?.name || 'Counter 01'}
@@ -1161,10 +1169,15 @@ export default function PosPage() {
               <span className="text-gray-300">|</span>
               <span className="text-[11px] font-mono font-bold text-gray-500 uppercase">POS Terminal</span>
             </div>
+            {/* Mobile Store Badge */}
+            <div className="sm:hidden flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200 text-emerald-800 text-xs font-black">
+              <span className="w-2 h-2 rounded-full bg-[#0C831F] animate-pulse" />
+              <span>POS</span>
+            </div>
           </div>
 
           {/* Blinkit Big Search Bar & Barcode Scanner Omnibox */}
-          <div ref={searchContainerRef} className="flex-1 max-w-2xl relative">
+          <div ref={searchContainerRef} className="flex-1 min-w-0 max-w-2xl relative">
             <div className={`relative flex items-center bg-slate-100/80 hover:bg-slate-100 rounded-2xl border transition-all duration-150 ${
               isSearchFocused 
                 ? 'bg-white border-[#0C831F] ring-3 ring-[#0C831F]/15 shadow-sm' 
@@ -1446,7 +1459,7 @@ export default function PosPage() {
           </div>
 
           {/* Right: Quick Actions & Blinkit Green Cart Button */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={() => {
                 setQuickAddBarcode('');
@@ -1472,35 +1485,57 @@ export default function PosPage() {
               )}
             </button>
 
-            {/* Mobile Cart Trigger / Toggle when Drawer closed */}
+            {/* Mobile / Desktop Cart Toggle Button */}
             <button
               onClick={() => setShowCartDrawer(!showCartDrawer)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer select-none ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-black transition-all cursor-pointer select-none active:scale-95 ${
                 showCartDrawer
                   ? 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
                   : 'bg-[#0C831F] hover:bg-[#0a6d1a] text-white shadow-md'
               }`}
             >
               <ShoppingCart className="w-4 h-4 stroke-[2.5]" />
-              <div className="flex items-center gap-1.5 leading-tight">
-                <span>{showCartDrawer ? 'Hide Cart' : 'View Cart'}</span>
-                <span className="font-mono font-bold">({cartTotals.itemCount})</span>
-              </div>
+              <span className="hidden sm:inline">{showCartDrawer ? 'Hide Cart' : 'View Cart'}</span>
+              <span className="font-mono font-bold bg-white/20 sm:bg-transparent px-1.5 py-0.5 rounded-md sm:p-0">
+                ({cartTotals.itemCount})
+              </span>
             </button>
           </div>
         </header>
 
-        {/* BLINKIT 2-COLUMN MAIN CONTENT (Categories Rail + Product Grid + Slide Cart) */}
-        <div className="flex-1 flex overflow-hidden no-print">
-          {/* 1. BLINKIT LEFT CATEGORY RAIL */}
-          <aside className="w-20 md:w-56 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0 flex flex-col py-2 select-none hide-scrollbar">
+        {/* Mobile Horizontal Category Rail (Swipeable Chips) */}
+        <div className="md:hidden bg-white border-b border-gray-200/90 px-2.5 py-2 overflow-x-auto hide-scrollbar flex items-center gap-1.5 shrink-0 select-none">
+          {CATEGORY_ITEMS.map((cat) => {
+            const isActive = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap shrink-0 transition-all font-bold ${
+                  isActive
+                    ? 'bg-[#0C831F] text-white shadow-xs'
+                    : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200 active:scale-95'
+                }`}
+              >
+                <span className="text-sm">{cat.icon}</span>
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 2-COLUMN MAIN CONTENT (Categories Rail for Desktop + Product Grid + Slide Cart) */}
+        <div className="flex-1 flex overflow-hidden no-print relative">
+          {/* 1. LEFT CATEGORY RAIL (Desktop Only) */}
+          <aside className="hidden md:flex w-56 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0 flex-col py-2 select-none hide-scrollbar">
             {CATEGORY_ITEMS.map((cat) => {
               const isActive = selectedCategory === cat.id;
               return (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex items-center gap-3 px-3 md:px-4 py-3 text-left transition-all relative cursor-pointer ${
+                  className={`flex items-center gap-3 px-4 py-3 text-left transition-all relative cursor-pointer ${
                     isActive
                       ? 'bg-[#e9f7ec] text-[#0C831F] font-black'
                       : 'text-gray-600 hover:bg-gray-50 font-bold'
@@ -1511,7 +1546,7 @@ export default function PosPage() {
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0C831F] rounded-r-md" />
                   )}
                   <span className="text-xl flex-shrink-0">{cat.icon}</span>
-                  <span className="hidden md:inline text-xs leading-tight truncate">
+                  <span className="text-xs leading-tight truncate">
                     {cat.name}
                   </span>
                 </button>
@@ -1520,7 +1555,7 @@ export default function PosPage() {
           </aside>
 
           {/* 2. CENTER PRODUCT CATALOG FEED */}
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-[#f4f6f8]">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 bg-[#f4f6f8]">
             {/* Category Title & Product Count (Clean Header without redundant banners) */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider flex items-center gap-2">
@@ -1549,7 +1584,7 @@ export default function PosPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5 pb-8 lg:pb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5 sm:gap-3.5 pb-32 md:pb-8">
                   {filteredProducts.slice(0, visibleCount).map((p) => {
                     const cartQty = cart[p.barcode || p.id]?.quantity || 0;
                     return (
@@ -1565,7 +1600,7 @@ export default function PosPage() {
                 </div>
 
                 {filteredProducts.length > visibleCount && (
-                  <div className="flex justify-center pb-24 lg:pb-8">
+                  <div className="flex justify-center pb-36 md:pb-8">
                     <button
                       type="button"
                       onClick={() => setVisibleCount((prev) => prev + 48)}
@@ -1579,40 +1614,58 @@ export default function PosPage() {
             )}
           </main>
 
-          {/* 3. BLINKIT SLIDE-IN CART & BILLING REGISTER (Desktop Side Panel) */}
+          {/* 3. BLINKIT SLIDE-IN CART & BILLING REGISTER (Desktop Side Panel / Mobile Bottom Sheet) */}
           <AnimatePresence>
             {showCartDrawer && (
-              <motion.aside
-                initial={{ x: 300, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 300, opacity: 0 }}
-                className="w-full lg:w-[420px] bg-white border-l border-gray-200 flex flex-col h-full z-40 shadow-xl flex-shrink-0"
-              >
-                {/* Cart Drawer Header */}
-                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-black text-gray-900">My Cart</h3>
-                    <span className="text-[11px] font-bold bg-[#e9f7ec] text-[#0C831F] px-2 py-0.5 rounded-full">
-                      {cartTotals.itemCount} items
-                    </span>
-                  </div>
+              <>
+                {/* Mobile Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowCartDrawer(false)}
+                  className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-[95]"
+                />
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={clearCart}
-                      disabled={cartTotals.itemCount === 0}
-                      className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-30 cursor-pointer"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      onClick={() => setShowCartDrawer(false)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                <motion.aside
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                  className="fixed inset-y-0 right-0 z-[100] w-full sm:max-w-md lg:static lg:w-[420px] bg-white border-l border-gray-200 flex flex-col h-full shadow-2xl lg:shadow-xl flex-shrink-0"
+                >
+                  {/* Cart Drawer Header */}
+                  <div className="p-3.5 sm:p-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowCartDrawer(false)}
+                        className="lg:hidden p-1.5 -ml-1 hover:bg-slate-100 rounded-xl text-slate-700 transition-colors cursor-pointer"
+                        title="Back to products"
+                      >
+                        <ArrowLeft className="w-5 h-5" />
+                      </button>
+                      <h3 className="text-sm font-black text-gray-900">Cart & Billing</h3>
+                      <span className="text-[11px] font-bold bg-[#e9f7ec] text-[#0C831F] px-2 py-0.5 rounded-full font-mono">
+                        {cartTotals.itemCount} items
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={clearCart}
+                        disabled={cartTotals.itemCount === 0}
+                        className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-30 cursor-pointer px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        Clear Cart
+                      </button>
+                      <button
+                        onClick={() => setShowCartDrawer(false)}
+                        className="hidden lg:flex text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
                 {/* Customer Attachment Box */}
                 <div className="mx-4 mt-3 p-3 bg-gray-50 rounded-2xl border border-gray-200 flex items-center justify-between">
@@ -1869,8 +1922,37 @@ export default function PosPage() {
                   </div>
                 )}
               </motion.aside>
+              </>
             )}
           </AnimatePresence>
+
+          {/* Mobile Sticky Blinkit Floating Cart Pill */}
+          {cartTotals.itemCount > 0 && !showCartDrawer && (
+            <div className="lg:hidden fixed bottom-[74px] left-3 right-3 z-[85] animate-in slide-in-from-bottom-3 duration-200">
+              <button
+                onClick={() => setShowCartDrawer(true)}
+                className="w-full bg-[#0C831F] hover:bg-[#0a6d1a] active:scale-[0.98] text-white p-3 sm:p-3.5 rounded-2xl shadow-xl shadow-green-950/30 flex items-center justify-between transition-all cursor-pointer border border-emerald-400/25"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center font-mono font-black text-xs shrink-0">
+                    {cartTotals.itemCount}
+                  </div>
+                  <div className="text-left">
+                    <span className="text-[11px] font-medium text-emerald-100 block leading-tight">
+                      {cartTotals.itemCount} {cartTotals.itemCount === 1 ? 'item' : 'items'} in Cart
+                    </span>
+                    <span className="text-sm sm:text-base font-mono font-black block leading-tight">
+                      ₹{cartTotals.finalTotal.toFixed(0)}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 font-bold text-xs bg-white text-[#0C831F] px-3.5 py-2 rounded-xl shadow-xs shrink-0">
+                  <span>View Cart</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

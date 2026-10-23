@@ -612,28 +612,28 @@ export default function VoicePriceUpdater() {
 
   return (
     <>
-      {/* ─── FLOATING ACTION BUTTON (DOCKED SAFELY AWAY FROM CART) ─── */}
-      <div className="fixed bottom-6 right-6 lg:right-[430px] z-[80] flex items-center gap-2">
+      {/* ─── FLOATING ACTION BUTTON (DOCKED SAFELY ABOVE BOTTOM NAV ON MOBILE) ─── */}
+      <div className="fixed bottom-20 right-3.5 sm:bottom-6 sm:right-6 lg:right-[430px] z-[80] flex items-center gap-2">
         <button
           onClick={() => setIsOpen((prev) => !prev)}
-          className="group relative flex items-center gap-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white px-5 py-3.5 rounded-full shadow-2xl shadow-emerald-950/60 border border-emerald-400/30 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer font-bold select-none"
-          title="किराना AI असिस्टेंट (दबाएं V या C)"
+          className="group relative flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white p-2.5 sm:px-5 sm:py-3.5 rounded-full shadow-2xl shadow-emerald-950/60 border border-emerald-400/30 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer font-bold select-none"
+          title="Kirana AI Copilot (Press V or C)"
         >
           {/* Pulsing ring */}
           <span className="absolute -inset-1 rounded-full bg-emerald-400/30 blur-sm group-hover:bg-emerald-400/60 transition-all animate-pulse" />
 
-          <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm shadow-inner">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm shadow-inner shrink-0">
             <Sparkles className="w-4 h-4 text-emerald-200 animate-spin-slow" />
           </div>
 
-          <div className="relative flex flex-col text-left">
+          <div className="hidden sm:flex relative flex-col text-left">
             <span className="text-xs font-black tracking-wide flex items-center gap-1.5">
-              <span>किराना AI Copilot</span>
+              <span>Kirana AI Copilot</span>
               <span className="text-[10px] bg-black/30 px-1.5 py-0.5 rounded font-mono uppercase tracking-wider text-emerald-200">
                 V
               </span>
             </span>
-            <span className="text-[10px] text-emerald-200/80 font-medium">बोल कर या चैट से बदलें</span>
+            <span className="text-[10px] text-emerald-200/80 font-medium">Voice & Chat Assistant</span>
           </div>
         </button>
       </div>
