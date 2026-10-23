@@ -72,81 +72,81 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const orderResult = await prisma.$transaction(async (tx) => {
-      // 1. Resolve or create customer if provided
-      let finalCustomerId = customerId || null;
-      if (!finalCustomerId && customerMobile && customerMobile.trim()) {
-        const cust = await tx.customer.upsert({
-          where: {
-            mobile_storeId: {
+    const orderResult = await prisma.$transaction(
+      async (tx) => {
+        // 1. Resolve or create customer if provided
+        let finalCustomerId = customerId || null;
+        if (!finalCustomerId && customerMobile && customerMobile.trim()) {
+          const cust = await tx.customer.upsert({
+            where: {
+              mobile_storeId: {
+                mobile: customerMobile.trim(),
+                storeId: user.storeId,
+              },
+            },
+            update: customerName ? { name: customerName.trim() } : {},
+            create: {
+              name: customerName?.trim() || 'Valued Customer',
               mobile: customerMobile.trim(),
               storeId: user.storeId,
             },
-          },
-          update: customerName ? { name: customerName.trim() } : {},
-          create: {
-            name: customerName?.trim() || 'Valued Customer',
-            mobile: customerMobile.trim(),
+          });
+          finalCustomerId = cust.id;
+        }
+
+        // 2. Generate sequential Bill Number e.g. KOS-1001
+        const count = await tx.order.count({ where: { storeId: user.storeId } });
+        const billNumber = `KOS-${1001 + count}`;
+
+        // 3. Create the Order
+        const createdOrder = await tx.order.create({
+          data: {
+            billNumber,
             storeId: user.storeId,
+            userId: user.sub,
+            customerId: finalCustomerId,
+            subtotal: parseFloat(subtotal || totalAmount),
+            discount: parseFloat(discount || '0'),
+            gstAmount: parseFloat(gstAmount || '0'),
+            totalAmount: parseFloat(totalAmount),
+            paymentMode,
+            status: 'COMPLETED',
           },
         });
-        finalCustomerId = cust.id;
-      }
 
-      // 2. Generate sequential Bill Number e.g. KOS-1001
-      const count = await tx.order.count({ where: { storeId: user.storeId } });
-      const billNumber = `KOS-${1001 + count}`;
+        // 4. Batch fetch products to avoid 1-by-1 findUnique roundtrips
+        const productIds = items.map((i: any) => i.productId);
+        const currentProducts = await tx.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, stock: true },
+        });
+        const productStockMap = new Map(currentProducts.map((p) => [p.id, Number(p.stock)]));
 
-      // 3. Create the Order
-      const createdOrder = await tx.order.create({
-        data: {
-          billNumber,
-          storeId: user.storeId,
-          userId: user.sub,
-          customerId: finalCustomerId,
-          subtotal: parseFloat(subtotal || totalAmount),
-          discount: parseFloat(discount || '0'),
-          gstAmount: parseFloat(gstAmount || '0'),
-          totalAmount: parseFloat(totalAmount),
-          paymentMode,
-          status: 'COMPLETED',
-        },
-      });
+        // Prepare order items and inventory logs in bulk
+        const orderItemsData: any[] = [];
+        const inventoryLogs: any[] = [];
+        const stockUpdates: Promise<any>[] = [];
 
-      // 4. Create OrderItems and adjust product stock
-      for (const item of items) {
-        const qty = parseFloat(item.quantity);
-        const price = parseFloat(item.price);
-        const gstRate = parseFloat(item.gstRate || '0');
-        const itemGst = parseFloat(item.gstAmount || '0');
+        for (const item of items) {
+          const qty = parseFloat(item.quantity);
+          const price = parseFloat(item.price);
+          const gstRate = parseFloat(item.gstRate || '0');
+          const itemGst = parseFloat(item.gstAmount || '0');
 
-        await tx.orderItem.create({
-          data: {
+          orderItemsData.push({
             orderId: createdOrder.id,
             productId: item.productId,
             quantity: qty,
             price,
             gstRate,
             gstAmount: itemGst,
-          },
-        });
-
-        // Decrement product stock & record inventory log
-        const currentProduct = await tx.product.findUnique({
-          where: { id: item.productId },
-        });
-
-        if (currentProduct) {
-          const beforeStock = Number(currentProduct.stock);
-          const afterStock = beforeStock - qty;
-
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: afterStock },
           });
 
-          await tx.inventoryTransaction.create({
-            data: {
+          if (productStockMap.has(item.productId)) {
+            const beforeStock = productStockMap.get(item.productId)!;
+            const afterStock = beforeStock - qty;
+
+            inventoryLogs.push({
               storeId: user.storeId,
               productId: item.productId,
               userId: user.sub,
@@ -155,27 +155,47 @@ export async function POST(req: NextRequest) {
               beforeStock,
               afterStock,
               description: `POS Sale #${billNumber}`,
+            });
+
+            stockUpdates.push(
+              tx.product.update({
+                where: { id: item.productId },
+                data: { stock: afterStock },
+              }),
+            );
+          }
+        }
+
+        // Execute batch creates and parallel stock updates
+        await Promise.all([
+          tx.orderItem.createMany({ data: orderItemsData }),
+          inventoryLogs.length > 0
+            ? tx.inventoryTransaction.createMany({ data: inventoryLogs })
+            : Promise.resolve(),
+          ...stockUpdates,
+        ]);
+
+        // 5. If PaymentMode is CREDIT, record in CreditTransaction
+        if (paymentMode === 'CREDIT' && finalCustomerId) {
+          await tx.creditTransaction.create({
+            data: {
+              storeId: user.storeId,
+              customerId: finalCustomerId,
+              orderId: createdOrder.id,
+              type: 'GIVE_CREDIT',
+              amount: parseFloat(totalAmount),
+              description: `POS Bill #${billNumber}`,
             },
           });
         }
-      }
 
-      // 5. If PaymentMode is CREDIT, record in CreditTransaction
-      if (paymentMode === 'CREDIT' && finalCustomerId) {
-        await tx.creditTransaction.create({
-          data: {
-            storeId: user.storeId,
-            customerId: finalCustomerId,
-            orderId: createdOrder.id,
-            type: 'GIVE_CREDIT',
-            amount: parseFloat(totalAmount),
-            description: `POS Bill #${billNumber}`,
-          },
-        });
-      }
-
-      return createdOrder;
-    });
+        return createdOrder;
+      },
+      {
+        maxWait: 10000, // 10s wait to acquire DB connection
+        timeout: 30000, // 30s transaction timeout (prevents timeout on multi-item orders)
+      },
+    );
 
     const fullOrder = await prisma.order.findUnique({
       where: { id: orderResult.id },
